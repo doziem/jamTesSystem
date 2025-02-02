@@ -1,0 +1,27 @@
+package com.doziem.jamTesSystem.response;
+
+import com.doziem.jamTesSystem.dto.UserDto;
+
+public class ApiResponse {
+    String message;
+    private Object data;
+
+    public ApiResponse(String message, UserDto data) {
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public Object getData() {
+        return data;
+    }
+
+    public void setData(Object data) {
+        this.data = data;
+    }
+}

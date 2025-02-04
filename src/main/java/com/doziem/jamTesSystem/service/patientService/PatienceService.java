@@ -20,9 +20,10 @@ public class PatienceService implements IPatientService{
 
     @Override
     public PatientDto createPatient(PatientDto patientDTO) {
-        Patient patient = PatientDto.mapToEntity(patientDTO);
-        patient = patientRepository.save(patient);
-        return PatientDto.mapToDTO(patient);
+//        Patient patient = PatientDto.mapToEntity(patientDTO);
+//        patient = patientRepository.save(patient);
+//        return PatientDto.mapToDTO(patient);
+        return null;
     }
 
     @Override

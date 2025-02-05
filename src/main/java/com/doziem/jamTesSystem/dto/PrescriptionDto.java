@@ -3,8 +3,6 @@ package com.doziem.jamTesSystem.dto;
 
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.model.Prescription;
-import lombok.Builder;
-import lombok.Data;
 
 import java.util.UUID;
 

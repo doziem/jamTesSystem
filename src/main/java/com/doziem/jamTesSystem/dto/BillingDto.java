@@ -2,77 +2,64 @@ package com.doziem.jamTesSystem.dto;
 
 import com.doziem.jamTesSystem.model.Billing;
 import com.doziem.jamTesSystem.model.Patient;
-import lombok.Builder;
-import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public class BillingDto {
     private UUID id;
     private UUID patientId;
     private BigDecimal totalAmount;
-    private boolean paid;
+    private boolean isPaid;
     private String paymentMethod;
-    private String billingDate;
+    private LocalDate billingDate;
 
-    public BillingDto(UUID id, UUID patientId, BigDecimal totalAmount, boolean paid, String paymentMethod, String billingDate) {
+
+    public BillingDto(){}
+
+    public BillingDto(UUID id, UUID patientId, boolean isPaid, BigDecimal totalAmount, String paymentMethod, LocalDate billingDate) {
         this.id = id;
-        this.patientId=patientId;
-        this.totalAmount=totalAmount;
-        this.paid = paid;
-        this.paymentMethod = paymentMethod;
-        this.billingDate=billingDate;
-    }
-
-    public boolean isPaid() {
-        return paid;
-    }
-
-    public void setPaid(boolean paid) {
-        this.paid = paid;
-    }
-
-    public String getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setTotalAmount(BigDecimal totalAmount) {
+        this.patientId = patientId;
+        this.isPaid = isPaid;
         this.totalAmount = totalAmount;
+        this.paymentMethod = paymentMethod;
+        this.billingDate = billingDate;
     }
 
-    public UUID getPatientId() {
-        return patientId;
+
+    public UUID getId() { return id; }
+    public UUID getPatientId() { return patientId; }
+    public boolean isPaid() { return isPaid; }
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public String getPaymentMethod() { return paymentMethod;
+}
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public void setPatientId(UUID patientId) {
         this.patientId = patientId;
     }
 
-    public UUID getId() {
-        return id;
+    public void setPaid(boolean paid) {
+        isPaid = paid;
     }
 
-    public void setId(UUID id) {
-        this.id = id;
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
-    public String getBillingDate() {
-        return billingDate;
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
-    public void setBillingDate(String billingDate) {
+    public void setBillingDate(LocalDate billingDate) {
         this.billingDate = billingDate;
     }
-    public BillingDto(){}
+
+    public LocalDate getBillingDate() { return billingDate; }
 
     // Convert DTO to Entity
     public static Billing mapToEntity(BillingDto dto, Patient patient) {
@@ -80,9 +67,10 @@ public class BillingDto {
                 dto.getId(),
                 patient,
                 dto.isPaid(),
-               dto.getTotalAmount(),
+                dto.getTotalAmount(),
                 dto.getPaymentMethod(),
                 dto.getBillingDate());
+
     }
 
     // Convert Entity to DTO
@@ -90,8 +78,8 @@ public class BillingDto {
         return new BillingDto(
                 billing.getId(),
                 billing.getPatient().getId(),
-                billing.getTotalAmount(),
                 billing.isPaid(),
+                billing.getTotalAmount(),
                 billing.getPaymentMethod(),
                 billing.getBillingDate());
     }

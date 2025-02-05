@@ -6,8 +6,6 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Getter
-@Setter
 @AllArgsConstructor
 @Builder
 public class Prescription {
@@ -16,7 +14,7 @@ public class Prescription {
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false)
+    @JoinColumn(name = "patient_id")
     private Patient patient;
 
     @Column(nullable = false)

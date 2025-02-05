@@ -4,6 +4,7 @@ import com.doziem.jamTesSystem.constant.Role;
 import com.doziem.jamTesSystem.model.Address;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.model.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 

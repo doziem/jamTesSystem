@@ -4,6 +4,7 @@ import com.doziem.jamTesSystem.model.Address;
 import com.doziem.jamTesSystem.model.Patient;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,9 +19,9 @@ public class PatientDto {
     private String gender;
     private Address address;
     private boolean active;
-    private List<LabReportDto> labReports;
-    private List<PrescriptionDto> prescriptions;
-    private List<BillingDto> billingRecords;
+    private List<LabReportDto> labReports = new ArrayList<>();
+    private List<PrescriptionDto> prescriptions = new ArrayList<>();
+    private List<BillingDto> billingRecords = new ArrayList<>();
 
     // Default Constructor
     public PatientDto() {}
@@ -104,7 +105,6 @@ public class PatientDto {
 
     public static Patient mapToEntity(PatientDto dto,Patient patient) {
         return new Patient(
-
                 dto.getId(),
                 dto.getFirstName(),
                 dto.getLastName(),

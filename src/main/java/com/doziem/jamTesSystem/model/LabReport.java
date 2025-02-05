@@ -6,8 +6,6 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Getter
-@Setter
 @AllArgsConstructor
 @Builder
 public class LabReport {
@@ -16,7 +14,7 @@ public class LabReport {
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false)
+    @JoinColumn(name = "patient_id")
     private Patient patient;
 
     @Column(nullable = false)
@@ -41,9 +39,7 @@ public class LabReport {
         this.conductedBy = conductedBy;
     }
 
-    public LabReport(UUID id, UUID patientId, String testName, String result,
-                     String reportDate, String conductedBy) {
-
+    public LabReport(UUID id, UUID patientId, String testName, String result,String reportDate, String conductedBy) {
     }
 
     public UUID getId() {

@@ -11,19 +11,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
     private final AuthService authService;
 
 
     public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, IUserService userService, UserRepository userRepository, AuthService authService) {
-        this.authenticationManager = authenticationManager;
-        this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
         this.authService = authService;
     }
 

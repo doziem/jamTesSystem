@@ -4,11 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Getter
-@Setter
 @AllArgsConstructor
 @Builder
 public class Billing {
@@ -17,7 +16,7 @@ public class Billing {
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false)
+    @JoinColumn(name = "patient_id")
     private Patient patient;
 
     @Column(nullable = false)
@@ -28,10 +27,10 @@ public class Billing {
 
     private String paymentMethod;
 
-    private String billingDate;
+    private LocalDate billingDate;
     public Billing(){}
 
-    public Billing(UUID id,  Patient patient,boolean paid, BigDecimal totalAmount, String paymentMethod, String billingDate) {
+    public Billing(UUID id,  Patient patient,boolean paid, BigDecimal totalAmount, String paymentMethod, LocalDate billingDate) {
         this.id = id;
         this.patient = patient;
         this.paid = paid;
@@ -44,47 +43,47 @@ public class Billing {
         return id;
     }
 
-    public void setId(UUID id) {
-        this.id = id;
+    public Patient getPatient() {
+        return patient;
     }
 
     public boolean isPaid() {
         return paid;
     }
 
-    public void setPaid(boolean paid) {
-        this.paid = paid;
-    }
-
-    public Patient getPatient() {
-        return patient;
-    }
-
-    public void setPatient(Patient patient) {
-        this.patient = patient;
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
     }
 
     public String getPaymentMethod() {
         return paymentMethod;
     }
 
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
+    public LocalDate getBillingDate() {
+        return billingDate;
     }
 
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setPaid(boolean paid) {
+        this.paid = paid;
+    }
+
+    public void setPatient(Patient patient) {
+        this.patient = patient;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
 
-    public String getBillingDate() {
-        return billingDate;
-    }
-
-    public void setBillingDate(String billingDate) {
+    public void setBillingDate(LocalDate billingDate) {
         this.billingDate = billingDate;
     }
 }

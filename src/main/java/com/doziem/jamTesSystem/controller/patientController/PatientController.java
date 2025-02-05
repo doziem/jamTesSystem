@@ -42,8 +42,8 @@ public class PatientController {
 
     // Update a patient
     @PutMapping("/{id}")
-    public ResponseEntity<PatientDto> updatePatient(@PathVariable UUID id, @RequestBody PatientDto patientDtO) {
-        return ResponseEntity.ok(patientService.updatePatient(id, patientDtO));
+    public ResponseEntity<ApiResponse> updatePatient(@PathVariable UUID id, @RequestBody PatientDto patientDtO) {
+        return ResponseEntity.ok().body(new ApiResponse("User fetched", patientService.updatePatient(id, patientDtO)));
     }
 
     // Delete a patient

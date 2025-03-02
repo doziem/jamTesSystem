@@ -1,92 +1,75 @@
 package com.doziem.jamTesSystem.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
-import lombok.*;
+import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@AllArgsConstructor
-@Builder
 public class LabReport {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id")
+    @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
+
+    @NotNull
+    private UUID requestedBy;
 
     @Column(nullable = false)
     private String testName;
 
-    @Column(nullable = false)
     private String result;
 
-    private String reportDate;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate reportDate;
 
-    private String conductedBy;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate requestDate;
 
-    public LabReport(){}
+    private UUID conductedBy;
 
-    public LabReport(UUID id, String result, String testName, Patient patient,
-                     String reportDate, String conductedBy) {
+    public LabReport() {}
+
+    public LabReport(UUID id, Patient patient, UUID requestedBy, String testName, String result,
+                     LocalDate reportDate, LocalDate requestDate, UUID conductedBy) {
         this.id = id;
-        this.result = result;
-        this.testName = testName;
         this.patient = patient;
+        this.requestedBy = requestedBy;
+        this.testName = testName;
+        this.result = result;
         this.reportDate = reportDate;
+        this.requestDate = requestDate;
         this.conductedBy = conductedBy;
     }
 
-    public LabReport(UUID id, UUID patientId, String testName, String result,String reportDate, String conductedBy) {
-    }
+    // Getters and Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public UUID getId() {
-        return id;
-    }
+    public Patient getPatient() { return patient; }
+    public void setPatient(Patient patient) { this.patient = patient; }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public UUID getRequestedBy() { return requestedBy; }
+    public void setRequestedBy(UUID requestedBy) { this.requestedBy = requestedBy; }
 
-    public Patient getPatient() {
-        return patient;
-    }
+    public String getTestName() { return testName; }
+    public void setTestName(String testName) { this.testName = testName; }
 
-    public void setPatient(Patient patient) {
-        this.patient = patient;
-    }
+    public String getResult() { return result; }
+    public void setResult(String result) { this.result = result; }
 
-    public String getReportDate() {
-        return reportDate;
-    }
+    public LocalDate getReportDate() { return reportDate; }
+    public void setReportDate(LocalDate reportDate) { this.reportDate = reportDate; }
 
-    public void setReportDate(String reportDate) {
-        this.reportDate = reportDate;
-    }
+    public LocalDate getRequestDate() { return requestDate; }
+    public void setRequestDate(LocalDate requestDate) { this.requestDate = requestDate; }
 
-    public String getResult() {
-        return result;
-    }
-
-    public void setResult(String result) {
-        this.result = result;
-    }
-
-    public String getTestName() {
-        return testName;
-    }
-
-    public void setTestName(String testName) {
-        this.testName = testName;
-    }
-
-    public String getConductedBy() {
-        return conductedBy;
-    }
-
-    public void setConductedBy(String conductedBy) {
-        this.conductedBy = conductedBy;
-    }
+    public UUID getConductedBy() { return conductedBy; }
+    public void setConductedBy(UUID conductedBy) { this.conductedBy = conductedBy; }
 }

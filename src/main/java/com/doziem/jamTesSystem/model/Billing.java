@@ -11,6 +11,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Billing {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;

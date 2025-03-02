@@ -53,6 +53,8 @@ public class AuthService {
         String token = jwtUtil.generateToken((UserDetails) authentication.getPrincipal());
 
         // Return successful response
-        return new AuthResponse("Login successful",user.getName(),user.getEmail(),user.getPhone(),user.getRole(),user.isActive(), token);
+        return new AuthResponse("Login successful",
+                user.getName(),user.getEmail(),user.getPhone(),
+                user.getRole(),user.isActive(), token);
     }
 }

@@ -7,7 +7,6 @@ import java.util.UUID;
 
 @Entity
 @AllArgsConstructor
-@Builder
 public class Prescription {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

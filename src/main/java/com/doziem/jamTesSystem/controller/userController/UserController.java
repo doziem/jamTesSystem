@@ -1,5 +1,6 @@
 package com.doziem.jamTesSystem.controller.userController;
 
+import com.doziem.jamTesSystem.dto.LabReportDto;
 import com.doziem.jamTesSystem.dto.UserDto;
 import com.doziem.jamTesSystem.response.ApiResponse;
 import com.doziem.jamTesSystem.service.userService.IUserService;
@@ -8,9 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
+import java.util.List;
+
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/users")
 public class UserController {
 
     @Autowired
@@ -20,15 +24,15 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse> createUser(@RequestBody UserDto userDto) {
+    // Get all lab reports
+    @GetMapping("/all")
+    public ResponseEntity<List<ApiResponse>> getAllUsers() {
         try {
-            UserDto createdUser = userService.createUser(userDto);
-            return  ResponseEntity.status(HttpStatus.CREATED).body( new ApiResponse("USer created Successfully",createdUser));
+            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse("All user fetched", userService.getAllUsers())));
         }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse("Error creating User",null));
-        }
+            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse("", null)));
 
+        }
     }
 }
 

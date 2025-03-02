@@ -54,17 +54,6 @@ public class PatienceService implements IPatientService{
         return PatientDto.mapToDTO(updatedPatient);
     }
 
-//    // Update a patient
-//    public PatientDto updatePatient(UUID id, PatientDto updatedDto) {
-//        return patientRepository.findById(id)
-//                .map(existingPatient -> {
-//                    Patient updatedPatient = PatientDto.mapToEntity(updatedDto, existingPatient);
-//                    return PatientDto.mapToDTO(patientRepository.save(updatedPatient));
-//                })
-//                .orElseThrow(() -> new RuntimeException("Patient not found with ID: " + id));
-//    }
-
-
     private Patient updateExistingPatient(Patient existingPatient,PatientDto patientDto) {
 
         existingPatient.setFirstName(patientDto.getFirstName() != null? patientDto.getFirstName(): existingPatient.getLastName());

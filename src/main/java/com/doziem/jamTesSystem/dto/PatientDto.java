@@ -103,7 +103,7 @@ public class PatientDto {
         );
     }
 
-    public static Patient mapToEntity(PatientDto dto,Patient patient) {
+    public static Patient mapToEntity(PatientDto dto, Patient patient) {
         return new Patient(
                 dto.getId(),
                 dto.getFirstName(),
@@ -114,14 +114,24 @@ public class PatientDto {
                 dto.getDateOfBirth(),
                 dto.getAddress(),
                 dto.isActive(),
-                dto.getBillingRecords().stream()
-                        .map(billingDto -> BillingDto.mapToEntity(billingDto, patient))
-                        .collect(Collectors.toList()),
-                dto.getLabReports().stream()
-                        .map(LabReportDto::mapToEntity)
-                        .collect(Collectors.toList()),
-                dto.getPrescriptions().stream()
-                        .map(prescriptionDto -> PrescriptionDto.mapToEntity(prescriptionDto, patient))
-                        .collect(Collectors.toList()));
+//                dto.getBillingRecords() != null ? dto.getBillingRecords().stream()
+//                        .map(billingDto -> BillingDto.mapToEntity(billingDto, patient))
+//                        .collect(Collectors.toList()) : new ArrayList<>(),
+//                dto.getLabReports() != null ? dto.getLabReports().stream()
+//                        .map(LabReportDto::mapToEntity)
+//                        .collect(Collectors.toList()) : new ArrayList<>(),
+//                dto.getPrescriptions() != null ? dto.getPrescriptions().stream()
+//                        .map(prescriptionDto -> PrescriptionDto.mapToEntity(prescriptionDto, patient)) // Ensure patient is passed
+//                        .collect(Collectors.toList()) : new ArrayList<>()
+                dto.getBillingRecords() != null ? dto.getBillingRecords().stream()
+                        .map(billingDto -> BillingDto.mapToEntity(billingDto, patient)) // Ensure patient is passed
+                        .collect(Collectors.toList()) : new ArrayList<>(),
+                dto.getLabReports() != null ? dto.getLabReports().stream()
+                        .map(labReportDto -> LabReportDto.mapToEntity(labReportDto,patient)) // Adjusted here
+                        .collect(Collectors.toList()) : new ArrayList<>(),
+                dto.getPrescriptions() != null ? dto.getPrescriptions().stream()
+                        .map(prescriptionDto -> PrescriptionDto.mapToEntity(prescriptionDto, patient)) // Ensure patient is passed
+                        .collect(Collectors.toList()) : new ArrayList<>()
+        );
     }
 }

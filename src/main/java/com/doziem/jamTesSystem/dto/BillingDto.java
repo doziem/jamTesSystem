@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public class BillingDto {
+
     private UUID id;
     private UUID patientId;
     private BigDecimal totalAmount;

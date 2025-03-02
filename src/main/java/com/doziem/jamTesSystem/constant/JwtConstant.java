@@ -1,14 +1,11 @@
 package com.doziem.jamTesSystem.constant;
 
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.security.Key;
 
 public class JwtConstant {
 
-//    @Value("${jwt.secret}")
-//    public static String SECRET;
 
     public static final String SECRET ="grjnkjnksdfangujungfndkjnafsiuQWHIODRQEWJRIUDEWRhmjkyfujngfhjetdhbg";
     public static final String JWT_HEADER ="Authorization";

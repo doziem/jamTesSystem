@@ -1,7 +1,6 @@
 package com.doziem.jamTesSystem.service.billingService;
 
 import com.doziem.jamTesSystem.dto.BillingDto;
-import com.doziem.jamTesSystem.dto.PatientDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.model.Billing;
 import com.doziem.jamTesSystem.model.Patient;

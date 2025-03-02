@@ -24,7 +24,7 @@ public class JwtUtil {
     public String generateToken(UserDetails userDetails) {
 
         return Jwts.builder()
-                .subject(userDetails.getUsername()) // Set the subject (username)
+                .subject(userDetails.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + JwtConstant.EXPIRATION_TIME))
                 .signWith(getKey())
@@ -45,38 +45,19 @@ public class JwtUtil {
 
     private Claims extractAllClaims(String token) {
         return  Jwts.parser()
-                .verifyWith(getKey()) // Verify JWT with the signing key
+                .verifyWith(getKey())
                 .build()
-                .parseSignedClaims(token) // Parses the JWT
-                .getPayload(); // Extracts claims directly
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
-//    public boolean validateToken(String token) {
-//
-//        final String username = extractUsername(token);
-//        System.out.println("Extracted Username: " + username);
-//
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//
-//        if (authentication == null || !authentication.isAuthenticated()) {
-//            return false; // No authenticated user
-//        }
-//
-//        Object principal = authentication.getPrincipal();
-//
-//        if (principal instanceof UserDetails userDetails) { // Using pattern matching for instanceof
-//            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
-//        }
-//
-//        return false;
-//    }
 
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
                     .verifyWith((SecretKey) SECRET_KEY)
                     .build()
-                    .parseSignedClaims(token); // New method for parsing claims
+                    .parseSignedClaims(token);
 
             return !isTokenExpired(token);
         } catch (ExpiredJwtException e) {

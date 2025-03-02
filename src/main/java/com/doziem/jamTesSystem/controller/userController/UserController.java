@@ -1,11 +1,8 @@
 package com.doziem.jamTesSystem.controller.userController;
 
-import com.doziem.jamTesSystem.dto.LabReportDto;
-import com.doziem.jamTesSystem.dto.UserDto;
 import com.doziem.jamTesSystem.response.ApiResponse;
 import com.doziem.jamTesSystem.service.userService.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

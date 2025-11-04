@@ -8,6 +8,7 @@ import com.doziem.jamTesSystem.response.AuthResponse;
 import com.doziem.jamTesSystem.service.userService.IUserService;
 import com.doziem.jamTesSystem.config.JwtUtil;
 import com.doziem.jamTesSystem.service.authService.AuthService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,9 +44,9 @@ public class AuthController {
     public ResponseEntity<ApiResponse> createUser(@RequestBody UserDto userDto) {
         try {
             UserDto createdUser = userService.createUser(userDto);
-            return  ResponseEntity.status(HttpStatus.CREATED).body( new ApiResponse("USer created Successfully",createdUser));
+            return  ResponseEntity.status(HttpStatus.CREATED).body( new ApiResponse(true,"USer created Successfully",createdUser));
         }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse("Error creating User",null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(false,"Error creating User"));
         }
 
     }

@@ -1,6 +1,7 @@
 package com.doziem.jamTesSystem.service.billingService;
 
 import com.doziem.jamTesSystem.dto.BillingDto;
+import com.doziem.jamTesSystem.response.ApiResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,5 +13,5 @@ public interface IBillingService {
     List<BillingDto> getAllBillings();
     List<BillingDto> getBillingsByPatientId(UUID patientId);
     BillingDto updateBilling(UUID id, BillingDto billingDto);
-    void deleteBilling(UUID id);
+    ApiResponse deleteBilling(UUID id);
 }

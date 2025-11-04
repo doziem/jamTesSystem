@@ -27,11 +27,11 @@ public class BillingController {
     public ResponseEntity<ApiResponse> createBilling(@RequestBody BillingDto billingDto) {
         try {
             BillingDto savedBilling = billingService.createBilling(billingDto);
-            return ResponseEntity.ok().body(new ApiResponse("Billing Created", savedBilling));
+            return ResponseEntity.ok().body(new ApiResponse(true, "Billing Created", savedBilling));
         }catch (ResourceNotFoundException e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(e.getMessage(),null));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false, e.getMessage()));
         }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(),null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(false, e.getMessage()));
         }
 
     }
@@ -53,11 +53,11 @@ public class BillingController {
     public ResponseEntity<List<ApiResponse>> getBillingsByPatientId(@PathVariable UUID patientId) {
         try {
             List<BillingDto> billings = billingService.getBillingsByPatientId(patientId);
-            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse("All Patient Bills Fetched", billings)));
+            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(true, "All Patient Bills Fetched", billings)));
         }catch (ResourceNotFoundException e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.singletonList(new ApiResponse(e.getMessage(), null)));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.singletonList(new ApiResponse(false, e.getMessage())));
         }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.singletonList(new ApiResponse(e.getMessage(), null)));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.singletonList(new ApiResponse(false, e.getMessage())));
         }
 
     }
@@ -66,11 +66,11 @@ public class BillingController {
     public ResponseEntity<ApiResponse> updateBilling(@PathVariable UUID id, @RequestBody BillingDto billingDto) {
        try {
            BillingDto updatedBilling = billingService.updateBilling(id, billingDto);
-           return ResponseEntity.ok().body(new ApiResponse("Billing successfully updated",updatedBilling));
+           return ResponseEntity.ok().body(new ApiResponse(true,"Billing successfully updated",updatedBilling));
        }catch (ResourceNotFoundException e){
-           return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(e.getMessage(),null));
+           return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false,e.getMessage()));
     }catch(Exception e){
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(),null));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(false, e.getMessage()));
     }
 
     }

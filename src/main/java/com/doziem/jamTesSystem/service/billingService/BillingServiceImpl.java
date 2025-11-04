@@ -6,6 +6,8 @@ import com.doziem.jamTesSystem.model.Billing;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.repository.BillingRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
+import com.doziem.jamTesSystem.response.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class BillingServiceImpl implements IBillingService{
@@ -89,8 +92,18 @@ public class BillingServiceImpl implements IBillingService{
 //        return existingPatient;
 //    }
     @Override
-    public void deleteBilling(@PathVariable UUID id) {
-        billingRepository.deleteById(id);
+    public ApiResponse deleteBilling(@PathVariable UUID id) {
+        Optional<BillingDto> billingDto = getBillingById(id);
 
+        try {
+            if (billingDto.isPresent()) {
+                billingRepository.deleteById(id);
+                return new ApiResponse(true, "Bill Successfully Deleted");
+            }
+        } catch (ResourceNotFoundException e) {
+          System.out.println("Error Deleting Bill {} "  + e.getMessage());
+        }
+
+        return new ApiResponse(false, "Error Deleting Bill");
     }
 }

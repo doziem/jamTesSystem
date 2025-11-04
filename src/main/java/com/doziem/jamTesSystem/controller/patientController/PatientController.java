@@ -24,26 +24,26 @@ public class PatientController {
     @PostMapping("/register")
     public ResponseEntity<ApiResponse> createPatient(@RequestBody PatientDto patientDTO) {
         PatientDto response = patientService.createPatient(patientDTO);
-        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse("Patient Successfully Created",response));
+        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse(true, "Patient Successfully Created",response));
     }
 
     // Get a patient by ID
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> getPatientById(@PathVariable UUID id) {
 
-        return ResponseEntity.ok().body(new ApiResponse("User fetched", patientService.getPatientById(id)) );
+        return ResponseEntity.ok().body(new ApiResponse(true, "User fetched", patientService.getPatientById(id)) );
     }
 
     // Get all patients
     @GetMapping("/all")
     public ResponseEntity<List<ApiResponse>> getAllPatients() {
-        return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse("All Patient Fetched", patientService.getAllPatients())));
+        return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(true, "All Patient Fetched", patientService.getAllPatients())));
     }
 
     // Update a patient
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse> updatePatient(@PathVariable UUID id, @RequestBody PatientDto patientDtO) {
-        return ResponseEntity.ok().body(new ApiResponse("User fetched", patientService.updatePatient(id, patientDtO)));
+        return ResponseEntity.ok().body(new ApiResponse(true, "User fetched", patientService.updatePatient(id, patientDtO)));
     }
 
     // Delete a patient

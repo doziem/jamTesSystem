@@ -26,13 +26,13 @@ public class LabReportController {
     @PostMapping("/create")
     public ResponseEntity<ApiResponse> createLabReport(@RequestBody LabReportDto dto) {
         try {
-            return ResponseEntity.ok().body(new ApiResponse("Lap Report Generated",labReportService.createLabReport(dto)));
+            return ResponseEntity.ok().body(new ApiResponse(true,"Report Successfully Created" ,labReportService.createLabReport(dto)));
         }catch (ResourceNotFoundException e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(e.getMessage(),null));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false, e.getMessage()));
         }catch (UserNotAllowedException e){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(e.getMessage(),null));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, e.getMessage()));
         } catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(e.getMessage(),null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(false, e.getMessage()));
         }
 
     }

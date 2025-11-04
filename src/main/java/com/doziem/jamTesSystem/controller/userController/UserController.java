@@ -25,9 +25,9 @@ public class UserController {
     @GetMapping("/all")
     public ResponseEntity<List<ApiResponse>> getAllUsers() {
         try {
-            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse("All user fetched", userService.getAllUsers())));
+            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(true, "All user fetched", userService.getAllUsers())));
         }catch (Exception e){
-            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse("", null)));
+            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(false, e.getMessage())));
 
         }
     }

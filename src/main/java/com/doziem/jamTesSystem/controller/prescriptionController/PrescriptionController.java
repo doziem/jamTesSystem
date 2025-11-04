@@ -36,14 +36,13 @@ public class PrescriptionController {
     public ResponseEntity<ApiResponse> createPrescription(@RequestBody PrescriptionDto prescriptionDto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new ApiResponse("Prescription Created",
-                            prescriptionService.savePrescription(prescriptionDto)));
+                    .body(new ApiResponse(true, "Prescription Created", prescriptionService.savePrescription(prescriptionDto)));
         }catch (ResourceNotFoundException e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse(e.getMessage(),null));
+                    .body(new ApiResponse(false, e.getMessage()));
         }catch (Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponse(e.getMessage(),null));
+                    .body(new ApiResponse(false, e.getMessage()));
         }
 
     }

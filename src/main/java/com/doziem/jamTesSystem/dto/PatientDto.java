@@ -6,11 +6,10 @@ import com.doziem.jamTesSystem.model.Patient;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class PatientDto {
-    private UUID id;
+    private String id;
     private String firstName;
     private String lastName;
     private String email;
@@ -27,7 +26,7 @@ public class PatientDto {
     public PatientDto() {}
 
     // Parameterized Constructor
-    public PatientDto(UUID id, String firstName, String lastName, String email, String phone,
+    public PatientDto(String id, String firstName, String lastName, String email, String phone,
                       LocalDate dateOfBirth, String gender, Address address, boolean active,
                       List<LabReportDto> labReports, List<PrescriptionDto> prescriptions,
                       List<BillingDto> billingRecords) {
@@ -46,8 +45,8 @@ public class PatientDto {
     }
 
     // Getter and Setter Methods
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
@@ -104,34 +103,37 @@ public class PatientDto {
     }
 
     public static Patient mapToEntity(PatientDto dto, Patient patient) {
-        return new Patient(
-                dto.getId(),
-                dto.getFirstName(),
-                dto.getLastName(),
-                dto.getEmail(),
-                dto.getPhone(),
-                dto.getGender(),
-                dto.getDateOfBirth(),
-                dto.getAddress(),
-                dto.isActive(),
-//                dto.getBillingRecords() != null ? dto.getBillingRecords().stream()
-//                        .map(billingDto -> BillingDto.mapToEntity(billingDto, patient))
-//                        .collect(Collectors.toList()) : new ArrayList<>(),
-//                dto.getLabReports() != null ? dto.getLabReports().stream()
-//                        .map(LabReportDto::mapToEntity)
-//                        .collect(Collectors.toList()) : new ArrayList<>(),
-//                dto.getPrescriptions() != null ? dto.getPrescriptions().stream()
-//                        .map(prescriptionDto -> PrescriptionDto.mapToEntity(prescriptionDto, patient)) // Ensure patient is passed
-//                        .collect(Collectors.toList()) : new ArrayList<>()
-                dto.getBillingRecords() != null ? dto.getBillingRecords().stream()
-                        .map(billingDto -> BillingDto.mapToEntity(billingDto, patient)) // Ensure patient is passed
-                        .collect(Collectors.toList()) : new ArrayList<>(),
-                dto.getLabReports() != null ? dto.getLabReports().stream()
-                        .map(labReportDto -> LabReportDto.mapToEntity(labReportDto,patient)) // Adjusted here
-                        .collect(Collectors.toList()) : new ArrayList<>(),
-                dto.getPrescriptions() != null ? dto.getPrescriptions().stream()
-                        .map(prescriptionDto -> PrescriptionDto.mapToEntity(prescriptionDto, patient)) // Ensure patient is passed
-                        .collect(Collectors.toList()) : new ArrayList<>()
-        );
+        Patient createdPatient = new Patient();
+        createdPatient.setId(dto.getId());
+        createdPatient.setFirstName(dto.getFirstName());
+        createdPatient.setLastName(dto.getLastName());
+        createdPatient.setEmail(dto.getEmail());
+        createdPatient.setPhone(dto.getPhone());
+        createdPatient.setDateOfBirth(dto.getDateOfBirth());
+        createdPatient.setGender(dto.getGender());
+        createdPatient.setAddress(dto.getAddress());
+        createdPatient.setActive(dto.isActive());
+
+        if (dto.getBillingRecords() != null) {
+            createdPatient.setBillingRecords(dto.getBillingRecords().stream()
+                    .map(billingDto -> BillingDto.mapToEntity(billingDto, patient != null ? patient : createdPatient))
+                    .collect(Collectors.toList()));
+        }
+        if (dto.getLabReports() != null) {
+            createdPatient.setLabReports(dto.getLabReports().stream()
+                    .map(labReportDto -> LabReportDto.mapToEntity(
+                            labReportDto,
+                            patient != null ? patient : createdPatient,
+                            null
+                    ))
+                    .collect(Collectors.toList()));
+        }
+        if (dto.getPrescriptions() != null) {
+            createdPatient.setPrescriptions(dto.getPrescriptions().stream()
+                    .map(prescriptionDto -> PrescriptionDto.mapToEntity(prescriptionDto, patient != null ? patient : createdPatient))
+                    .collect(Collectors.toList()));
+        }
+
+        return createdPatient;
     }
 }

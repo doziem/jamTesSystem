@@ -7,84 +7,37 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@Setter
+@Getter
 @Entity
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Billing {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "uuid")
+    private String id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id")
+    @JoinColumn(name = "patient_id", columnDefinition = "uuid")
     private Patient patient;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "numeric(19,2) default 0")
     private BigDecimal totalAmount;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean paid;
 
     private String paymentMethod;
 
     private LocalDate billingDate;
-    public Billing(){}
 
-    public Billing(UUID id,  Patient patient,boolean paid, BigDecimal totalAmount, String paymentMethod, LocalDate billingDate) {
-        this.id = id;
-        this.patient = patient;
-        this.paid = paid;
-        this.totalAmount = totalAmount;
-        this.paymentMethod = paymentMethod;
-        this.billingDate = billingDate;
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public Patient getPatient() {
-        return patient;
-    }
-
-    public boolean isPaid() {
-        return paid;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    public String getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public LocalDate getBillingDate() {
-        return billingDate;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public void setPaid(boolean paid) {
-        this.paid = paid;
-    }
-
-    public void setPatient(Patient patient) {
-        this.patient = patient;
-    }
-
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
-    }
-
-    public void setTotalAmount(BigDecimal totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public void setBillingDate(LocalDate billingDate) {
-        this.billingDate = billingDate;
+    @PrePersist
+    public void generateId() {
+        if (this.id == null || this.id.isBlank()) {
+            this.id = UUID.randomUUID().toString();
+        }
     }
 }

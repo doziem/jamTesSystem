@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/billing")
@@ -37,7 +36,7 @@ public class BillingController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BillingDto> getBillingById(@PathVariable UUID id) {
+    public ResponseEntity<BillingDto> getBillingById(@PathVariable String id) {
         Optional<BillingDto> billing = billingService.getBillingById(id);
         return billing.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -50,7 +49,7 @@ public class BillingController {
     }
 
     @GetMapping("/patient/{patientId}")
-    public ResponseEntity<List<ApiResponse>> getBillingsByPatientId(@PathVariable UUID patientId) {
+    public ResponseEntity<List<ApiResponse>> getBillingsByPatientId(@PathVariable String patientId) {
         try {
             List<BillingDto> billings = billingService.getBillingsByPatientId(patientId);
             return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(true, "All Patient Bills Fetched", billings)));
@@ -63,7 +62,7 @@ public class BillingController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse> updateBilling(@PathVariable UUID id, @RequestBody BillingDto billingDto) {
+    public ResponseEntity<ApiResponse> updateBilling(@PathVariable String id, @RequestBody BillingDto billingDto) {
        try {
            BillingDto updatedBilling = billingService.updateBilling(id, billingDto);
            return ResponseEntity.ok().body(new ApiResponse(true,"Billing successfully updated",updatedBilling));
@@ -76,7 +75,7 @@ public class BillingController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBilling(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteBilling(@PathVariable String id) {
         billingService.deleteBilling(id);
         return ResponseEntity.noContent().build();
     }

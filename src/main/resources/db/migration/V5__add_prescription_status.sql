@@ -1,0 +1,10 @@
+ALTER TABLE prescription
+    ADD COLUMN IF NOT EXISTS status varchar(255);
+
+UPDATE prescription
+SET status = 'PENDING_PHARMACY_REVIEW'
+WHERE status IS NULL;
+
+ALTER TABLE prescription
+    ALTER COLUMN status SET DEFAULT 'PENDING_PHARMACY_REVIEW',
+    ALTER COLUMN status SET NOT NULL;

@@ -2,22 +2,27 @@ package com.doziem.jamTesSystem.dto;
 
 import com.doziem.jamTesSystem.model.Doctor;
 import com.doziem.jamTesSystem.model.User;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.util.UUID;
 
+@Builder
+@Data
 public class DoctorDto {
 
-    private UUID id;
+    private String id;
     private String firstName;
     private String lastName;
     private String specialization;
     private int experience;
-    private UUID userId;
-    private String availability; // Example: "Monday-Friday, 9 AM - 5 PM"
+    private String userId;
+    private String availability;
 
     public DoctorDto() {}
 
-    public DoctorDto(UUID id, String firstName, String lastName, String specialization, int experience, UUID userId, String availability) {
+    public DoctorDto(String id, String firstName, String lastName, String specialization, int experience, String userId, String availability) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -49,59 +54,4 @@ public class DoctorDto {
                 doctor.getAvailability());
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getSpecialization() {
-        return specialization;
-    }
-
-    public void setSpecialization(String specialization) {
-        this.specialization = specialization;
-    }
-
-    public int getExperience() {
-        return experience;
-    }
-
-    public void setExperience(int experience) {
-        this.experience = experience;
-    }
-
-    public UUID getUserId() {
-        return userId;
-    }
-
-    public void setUserId(UUID userId) {
-        this.userId = userId;
-    }
-
-    public String getAvailability() {
-        return availability;
-    }
-
-    public void setAvailability(String availability) {
-        this.availability = availability;
-    }
 }

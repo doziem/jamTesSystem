@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/doctors")
@@ -31,17 +30,17 @@ public class DoctorController {
     }
 
     @GetMapping("/{id}/single")
-    public ResponseEntity<DoctorDto> getDoctorById(@PathVariable UUID id) {
+    public ResponseEntity<DoctorDto> getDoctorById(@PathVariable String id) {
         return ResponseEntity.ok(doctorService.getDoctorById(id));
     }
 
     @PutMapping("/{id}/update")
-    public ResponseEntity<DoctorDto> updateDoctor(@PathVariable UUID id, @RequestBody DoctorDto dto) {
+    public ResponseEntity<DoctorDto> updateDoctor(@PathVariable String id, @RequestBody DoctorDto dto) {
         return ResponseEntity.ok(doctorService.updateDoctor(id, dto));
     }
 
     @DeleteMapping("/{id}/delete")
-    public ResponseEntity<Void> deleteDoctor(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteDoctor(@PathVariable String id) {
         doctorService.deleteDoctor(id);
         return ResponseEntity.noContent().build();
     }

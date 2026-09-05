@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/patients")
@@ -29,7 +28,7 @@ public class PatientController {
 
     // Get a patient by ID
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse> getPatientById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse> getPatientById(@PathVariable String id) {
 
         return ResponseEntity.ok().body(new ApiResponse(true, "User fetched", patientService.getPatientById(id)) );
     }
@@ -42,13 +41,13 @@ public class PatientController {
 
     // Update a patient
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse> updatePatient(@PathVariable UUID id, @RequestBody PatientDto patientDtO) {
+    public ResponseEntity<ApiResponse> updatePatient(@PathVariable String id, @RequestBody PatientDto patientDtO) {
         return ResponseEntity.ok().body(new ApiResponse(true, "User fetched", patientService.updatePatient(id, patientDtO)));
     }
 
     // Delete a patient
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePatient(@PathVariable UUID id) {
+    public ResponseEntity<Void> deletePatient(@PathVariable String id) {
         patientService.deletePatient(id);
         return ResponseEntity.noContent().build();
     }

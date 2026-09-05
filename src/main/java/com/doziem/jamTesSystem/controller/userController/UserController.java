@@ -1,35 +1,33 @@
 package com.doziem.jamTesSystem.controller.userController;
 
-import com.doziem.jamTesSystem.response.ApiResponse;
+import com.doziem.jamTesSystem.dto.UserDto;
 import com.doziem.jamTesSystem.service.userService.IUserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
 import java.util.List;
-
 
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
     private final IUserService userService;
 
-    public UserController(IUserService userService) {
-        this.userService = userService;
+    @GetMapping("/all")
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // Get all lab reports
-    @GetMapping("/all")
-    public ResponseEntity<List<ApiResponse>> getAllUsers() {
-        try {
-            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(true, "All user fetched", userService.getAllUsers())));
-        }catch (Exception e){
-            return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(false, e.getMessage())));
-
-        }
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDto> getUserById(@PathVariable String id) {
+        return userService.getUserById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
 

@@ -5,13 +5,12 @@ import com.doziem.jamTesSystem.response.ApiResponse;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface IBillingService {
     BillingDto createBilling(BillingDto billingDto);
-    Optional<BillingDto> getBillingById(UUID id);
+    Optional<BillingDto> getBillingById(String id);
     List<BillingDto> getAllBillings();
-    List<BillingDto> getBillingsByPatientId(UUID patientId);
-    BillingDto updateBilling(UUID id, BillingDto billingDto);
-    ApiResponse deleteBilling(UUID id);
+    List<BillingDto> getBillingsByPatientId(String patientId);
+    BillingDto updateBilling(String id, BillingDto billingDto);
+    ApiResponse deleteBilling(String id);
 }

@@ -7,7 +7,6 @@ import com.doziem.jamTesSystem.repository.PatientRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -28,7 +27,7 @@ public class PatienceService implements IPatientService{
 
     // Retrieve a patient by ID
     @Override
-    public PatientDto getPatientById(UUID id) {
+    public PatientDto getPatientById(String id) {
         return patientRepository.findById(id)
                 .map(PatientDto::mapToDTO)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
@@ -46,7 +45,7 @@ public class PatienceService implements IPatientService{
 
     // Update a patient
     @Override
-    public PatientDto updatePatient(UUID id, PatientDto patientDTO) {
+    public PatientDto updatePatient(String id, PatientDto patientDTO) {
         Patient existingPatient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
         Patient updatedPatient = patientRepository.save(updateExistingPatient(existingPatient,patientDTO));
@@ -92,7 +91,7 @@ public class PatienceService implements IPatientService{
 
 
     @Override
-    public void deletePatient(UUID id) {
+    public void deletePatient(String id) {
       Patient patient=  patientRepository.findById(id)
                 .orElseThrow(()->new ResourceNotFoundException("Patient not found with id: " + id));
         patientRepository.delete(patient);

@@ -10,24 +10,21 @@ import com.doziem.jamTesSystem.model.User;
 import com.doziem.jamTesSystem.repository.LabReportRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
 import com.doziem.jamTesSystem.repository.UserRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class LabReportServiceImpl implements ILabReportService{
 
     private final LabReportRepository labReportRepository;
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
 
-    public LabReportServiceImpl(LabReportRepository labReportRepository, PatientRepository patientRepository, UserRepository userRepository) {
-        this.labReportRepository = labReportRepository;
-        this.patientRepository = patientRepository;
-        this.userRepository = userRepository;
-    }
+
     @Override
     // Create a new lab report
     public LabReportDto createLabReport(LabReportDto dto) {
@@ -41,7 +38,7 @@ public class LabReportServiceImpl implements ILabReportService{
             throw new UserNotAllowedException("Only a Doctor can request a test");
         }
 
-        LabReport labReport = LabReportDto.mapToEntity(dto,patient);
+        LabReport labReport = LabReportDto.mapToEntity(dto, patient, null);
         labReport.setPatient(patient);
 
         return LabReportDto.mapToDTO(labReportRepository.save(labReport));
@@ -57,7 +54,7 @@ public class LabReportServiceImpl implements ILabReportService{
 
     @Override
     // Get a lab report by ID
-    public LabReportDto getLabReportById(UUID id) {
+    public LabReportDto getLabReportById(String id) {
         LabReport labReport = labReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lab Report not found"));
 
@@ -66,7 +63,7 @@ public class LabReportServiceImpl implements ILabReportService{
 
     @Override
     // Get all lab reports by patient ID
-    public List<LabReportDto> getLabReportsByPatientId(UUID patientId) {
+    public List<LabReportDto> getLabReportsByPatientId(String patientId) {
         List<LabReport> labReports = labReportRepository.findByPatientId(patientId);
 
         if (labReports.isEmpty()) {
@@ -79,23 +76,46 @@ public class LabReportServiceImpl implements ILabReportService{
     }
 
     @Override
+    public List<LabReportDto> getLabReportsByRequestedBy(String requestedBy) {
+        List<LabReport> labReports = labReportRepository.findByLabRequestRequestedById(requestedBy);
+        if (labReports.isEmpty()) {
+            throw new ResourceNotFoundException("No lab reports found for doctor: " + requestedBy);
+        }
+        return labReports.stream()
+                .map(LabReportDto::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     // Update a lab report
-    public LabReportDto updateLabReport(UUID id, LabReportDto dto) {
+    public LabReportDto updateLabReport(String id, LabReportDto dto) {
         LabReport labReport = labReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lab Report not found"));
 
-        // Update fields
-        labReport.setTestName(dto.getTestName());
-        labReport.setResult(dto.getResult());
-        labReport.setReportDate(dto.getReportDate());
-        labReport.setConductedBy(dto.getConductedBy());
+        if (dto.getResult() != null && !dto.getResult().isBlank()) {
+            if (dto.getConductedBy() == null) {
+                throw new UserNotAllowedException("Only a Lab Scientist can submit the lab result");
+            }
+
+            User user = userRepository.findById(dto.getConductedBy())
+                    .orElseThrow(() -> new ResourceNotFoundException("Lab scientist not found"));
+
+            if (user.getRole() != Role.LAB_SCIENTIST) {
+                throw new UserNotAllowedException("Only a Lab Scientist is allowed to send a lab result");
+            }
+        }
+
+        labReport.setTestName(dto.getTestName() != null ? dto.getTestName() : labReport.getTestName());
+        labReport.setResult(dto.getResult() != null ? dto.getResult() : labReport.getResult());
+        labReport.setReportDate(dto.getReportDate() != null ? dto.getReportDate() : labReport.getReportDate());
+        labReport.setConductedBy(dto.getConductedBy() != null ? dto.getConductedBy() : labReport.getConductedBy());
 
         return LabReportDto.mapToDTO(labReportRepository.save(labReport));
     }
 
     // Delete a lab report
     @Override
-    public void deleteLabReport(UUID id) {
+    public void deleteLabReport(String id) {
         LabReport labReport = labReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lab Report not found"));
 

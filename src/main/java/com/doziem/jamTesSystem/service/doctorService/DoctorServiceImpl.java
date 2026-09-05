@@ -9,7 +9,6 @@ import com.doziem.jamTesSystem.repository.DoctorRepository;
 import com.doziem.jamTesSystem.repository.UserRepository;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class DoctorServiceImpl implements IDoctorService{
@@ -41,7 +40,7 @@ public class DoctorServiceImpl implements IDoctorService{
     }
 
     @Override
-    public DoctorDto getDoctorById(UUID id) {
+    public DoctorDto getDoctorById(String id) {
 
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
@@ -49,7 +48,7 @@ public class DoctorServiceImpl implements IDoctorService{
     }
 
     @Override
-    public DoctorDto updateDoctor(UUID id, DoctorDto dto) {
+    public DoctorDto updateDoctor(String id, DoctorDto dto) {
 
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
@@ -64,7 +63,7 @@ public class DoctorServiceImpl implements IDoctorService{
     }
 
     @Override
-    public void deleteDoctor(UUID id) {
+    public void deleteDoctor(String id) {
 
         if (!doctorRepository.existsById(id)) {
             throw new RuntimeException("Doctor not found");

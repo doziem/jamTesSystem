@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/prescriptions")
@@ -26,7 +25,7 @@ public class PrescriptionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PrescriptionDto> getPrescriptionById(@PathVariable UUID id) {
+    public ResponseEntity<PrescriptionDto> getPrescriptionById(@PathVariable String id) {
         return prescriptionService.getPrescriptionById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -48,7 +47,7 @@ public class PrescriptionController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PrescriptionDto> updatePrescription(@PathVariable UUID id, @RequestBody PrescriptionDto prescriptionDto) {
+    public ResponseEntity<PrescriptionDto> updatePrescription(@PathVariable String id, @RequestBody PrescriptionDto prescriptionDto) {
         try {
             return ResponseEntity.ok(prescriptionService.updatePrescription(id, prescriptionDto));
         } catch (RuntimeException e) {
@@ -57,7 +56,7 @@ public class PrescriptionController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePrescription(@PathVariable UUID id) {
+    public ResponseEntity<Void> deletePrescription(@PathVariable String id) {
         prescriptionService.deletePrescription(id);
         return ResponseEntity.noContent().build();
     }

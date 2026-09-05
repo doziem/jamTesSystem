@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -42,7 +41,7 @@ public class BillingServiceImpl implements IBillingService{
     }
 
     @Override
-    public Optional<BillingDto> getBillingById(@PathVariable UUID id) {
+    public Optional<BillingDto> getBillingById(@PathVariable String id) {
         return billingRepository.findById(id).map(BillingDto::mapToDTO);
     }
 
@@ -55,7 +54,7 @@ public class BillingServiceImpl implements IBillingService{
     }
 
     @Override
-    public List<BillingDto> getBillingsByPatientId(@PathVariable UUID patientId) {
+    public List<BillingDto> getBillingsByPatientId(@PathVariable String patientId) {
 
         List<Billing> billings = billingRepository.findByPatientId(patientId);
 
@@ -69,7 +68,7 @@ public class BillingServiceImpl implements IBillingService{
     }
 
     @Override
-    public BillingDto updateBilling(@PathVariable UUID id,@RequestBody BillingDto billingDto) {
+    public BillingDto updateBilling(@PathVariable String id,@RequestBody BillingDto billingDto) {
         return billingRepository.findById(id).map(billing -> {
             billing.setPaid(Boolean.TRUE.equals(billingDto.isPaid()));
             billing.setTotalAmount(billingDto.getTotalAmount() != null ? billingDto.getTotalAmount() : billing.getTotalAmount());
@@ -92,7 +91,7 @@ public class BillingServiceImpl implements IBillingService{
 //        return existingPatient;
 //    }
     @Override
-    public ApiResponse deleteBilling(@PathVariable UUID id) {
+    public ApiResponse deleteBilling(@PathVariable String id) {
         Optional<BillingDto> billingDto = getBillingById(id);
 
         try {

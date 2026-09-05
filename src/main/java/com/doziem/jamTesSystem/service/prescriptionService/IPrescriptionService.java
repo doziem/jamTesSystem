@@ -5,16 +5,15 @@ import com.doziem.jamTesSystem.model.Patient;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface IPrescriptionService {
     List<PrescriptionDto> getAllPrescriptions();
 
-    Optional<PrescriptionDto> getPrescriptionById(UUID id);
+    Optional<PrescriptionDto> getPrescriptionById(String id);
 
     PrescriptionDto savePrescription(PrescriptionDto prescriptionDto);
 
-    PrescriptionDto updatePrescription(UUID id, PrescriptionDto prescriptionDto);
+    PrescriptionDto updatePrescription(String id, PrescriptionDto prescriptionDto);
 
-    void deletePrescription(UUID id);
+    void deletePrescription(String id);
 }

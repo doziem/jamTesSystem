@@ -3,23 +3,35 @@ package com.doziem.jamTesSystem.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class LabReport {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "uuid")
+    private String id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false)
+    @JoinColumn(name = "patient_id", nullable = false, columnDefinition = "uuid")
     private Patient patient;
 
-    @NotNull
-    private UUID requestedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lab_request_id", nullable = false, columnDefinition = "uuid")
+    private LabRequest labRequest;
 
     @Column(nullable = false)
     private String testName;
@@ -32,44 +44,12 @@ public class LabReport {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate requestDate;
 
-    private UUID conductedBy;
+    private String conductedBy;
 
-    public LabReport() {}
-
-    public LabReport(UUID id, Patient patient, UUID requestedBy, String testName, String result,
-                     LocalDate reportDate, LocalDate requestDate, UUID conductedBy) {
-        this.id = id;
-        this.patient = patient;
-        this.requestedBy = requestedBy;
-        this.testName = testName;
-        this.result = result;
-        this.reportDate = reportDate;
-        this.requestDate = requestDate;
-        this.conductedBy = conductedBy;
+    @PrePersist
+    public void generateId() {
+        if (this.id == null || this.id.isBlank()) {
+            this.id = UUID.randomUUID().toString();
+        }
     }
-
-    // Getters and Setters
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public Patient getPatient() { return patient; }
-    public void setPatient(Patient patient) { this.patient = patient; }
-
-    public UUID getRequestedBy() { return requestedBy; }
-    public void setRequestedBy(UUID requestedBy) { this.requestedBy = requestedBy; }
-
-    public String getTestName() { return testName; }
-    public void setTestName(String testName) { this.testName = testName; }
-
-    public String getResult() { return result; }
-    public void setResult(String result) { this.result = result; }
-
-    public LocalDate getReportDate() { return reportDate; }
-    public void setReportDate(LocalDate reportDate) { this.reportDate = reportDate; }
-
-    public LocalDate getRequestDate() { return requestDate; }
-    public void setRequestDate(LocalDate requestDate) { this.requestDate = requestDate; }
-
-    public UUID getConductedBy() { return conductedBy; }
-    public void setConductedBy(UUID conductedBy) { this.conductedBy = conductedBy; }
 }

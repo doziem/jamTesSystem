@@ -3,7 +3,6 @@ package com.doziem.jamTesSystem.service.labReportService;
 import com.doziem.jamTesSystem.dto.LabReportDto;
 
 import java.util.List;
-import java.util.UUID;
 
 public interface ILabReportService {
 
@@ -11,11 +10,13 @@ public interface ILabReportService {
 
     List<LabReportDto> getAllLabReports();
 
-    LabReportDto getLabReportById(UUID id);
+    LabReportDto getLabReportById(String id);
 
-    List<LabReportDto> getLabReportsByPatientId(UUID patientId);
+    List<LabReportDto> getLabReportsByPatientId(String patientId);
 
-    LabReportDto updateLabReport(UUID id, LabReportDto dto);
+    List<LabReportDto> getLabReportsByRequestedBy(String requestedBy);
 
-    void deleteLabReport(UUID id);
+    LabReportDto updateLabReport(String id, LabReportDto dto);
+
+    void deleteLabReport(String id);
 }

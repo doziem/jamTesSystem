@@ -29,7 +29,21 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public List<UserDto> getAllUsers() {
+        return getAllUsers(0, 10);
+    }
+
+    @Override
+    public List<UserDto> getAllUsers(int page, int size) {
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
+
         return userRepository.findAll().stream()
+                .skip((long) page * size)
+                .limit(size)
                 .map(UserDto::mapToDTO)
                 .toList();
     }

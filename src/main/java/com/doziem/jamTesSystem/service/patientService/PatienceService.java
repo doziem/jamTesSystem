@@ -36,9 +36,18 @@ public class PatienceService implements IPatientService{
 
     // Retrieve all patients
     @Override
-    public List<PatientDto> getAllPatients() {
+    public List<PatientDto> getAllPatients(int page, int size) {
+        //initialize the page and size to default values if they are not provided
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
         return patientRepository.findAll()
                 .stream()
+                .skip((long) page * size)
+                .limit(size)
                 .map(PatientDto::mapToDTO)
                 .collect(Collectors.toList());
     }
@@ -54,14 +63,14 @@ public class PatienceService implements IPatientService{
 
     private Patient updateExistingPatient(Patient existingPatient,PatientDto patientDto) {
 
-        existingPatient.setFirstName(patientDto.getFirstName() != null? patientDto.getFirstName(): existingPatient.getLastName());
+        existingPatient.setFirstName(patientDto.getFirstName() != null ? patientDto.getFirstName() : existingPatient.getFirstName());
         existingPatient.setLastName(patientDto.getLastName() != null ? patientDto.getLastName() : existingPatient.getLastName());
         existingPatient.setEmail(patientDto.getEmail() != null ? patientDto.getEmail() : existingPatient.getEmail());
         existingPatient.setPhone(patientDto.getPhone() != null ? patientDto.getPhone() : existingPatient.getPhone());
         existingPatient.setDateOfBirth(patientDto.getDateOfBirth() != null ? patientDto.getDateOfBirth() : existingPatient.getDateOfBirth());
         existingPatient.setGender(patientDto.getGender() != null ? patientDto.getGender() : existingPatient.getGender());
         existingPatient.setAddress(patientDto.getAddress() != null ? patientDto.getAddress() : existingPatient.getAddress());
-        existingPatient.setActive(Boolean.FALSE.equals(patientDto.isActive()));
+        existingPatient.setActive(patientDto.isActive());
         return existingPatient;
     }
 

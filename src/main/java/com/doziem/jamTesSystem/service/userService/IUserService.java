@@ -10,6 +10,8 @@ public interface IUserService {
 
     List<UserDto> getAllUsers();
 
+    List<UserDto> getAllUsers(int page, int size);
+
     Optional<UserDto> getUserById(String id);
 
     Optional<UserDto> updateUser(String id, UserDto dto, String password);

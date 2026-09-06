@@ -7,11 +7,15 @@ import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
 import com.doziem.jamTesSystem.model.*;
 import com.doziem.jamTesSystem.repository.*;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,21 +28,18 @@ public class PharmacyServiceImpl implements IPharmacyService {
     private final MedicationRepository medicationRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final BillingRepository billingRepository;
-    private final PatientRepository patientRepository;
 
     public PharmacyServiceImpl(
             PharmacyRepository pharmacyRepository,
             PharmacyInventoryRepository pharmacyInventoryRepository,
             MedicationRepository medicationRepository,
             PrescriptionRepository prescriptionRepository,
-            BillingRepository billingRepository,
-            PatientRepository patientRepository) {
+            BillingRepository billingRepository) {
         this.pharmacyRepository = pharmacyRepository;
         this.pharmacyInventoryRepository = pharmacyInventoryRepository;
         this.medicationRepository = medicationRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.billingRepository = billingRepository;
-        this.patientRepository = patientRepository;
     }
 
     @Override
@@ -65,17 +66,57 @@ public class PharmacyServiceImpl implements IPharmacyService {
 
     @Override
     public List<PharmacyDto> getAllPharmacies() {
-        return pharmacyRepository.findAll()
+        return getAllPharmacies(0, 10, "name", "asc");
+    }
+
+    @Override
+    public List<PharmacyDto> getAllPharmacies(int page, int size, String sortBy, String sortDirection) {
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
+
+        String property = (sortBy == null || sortBy.isBlank()) ? "name" : sortBy.trim();
+        validatePharmacySortProperty(property);
+
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDirection)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, property));
+
+        return pharmacyRepository.findAll(pageable)
+                .getContent()
                 .stream()
                 .map(PharmacyDto::mapToDTO)
                 .toList();
+    }
+
+    private void validatePharmacySortProperty(String sortBy) {
+        try {
+            Field field = Pharmacy.class.getDeclaredField(sortBy);
+            if (field.isSynthetic()) {
+                throw new IllegalArgumentException("Invalid sort field: " + sortBy);
+            }
+        } catch (NoSuchFieldException e) {
+            throw new IllegalArgumentException("Invalid sort field: " + sortBy);
+        }
     }
 
     @Override
     public Optional<PharmacyDto> getPharmacyById(String id) {
         return pharmacyRepository.findById(id).map(PharmacyDto::mapToDTO);
     }
-
+/**
+ * Adds a specified quantity of medication to a pharmacy's inventory.
+ * @param pharmacyId the ID of the pharmacy
+ * @param medicationId the ID of the medication
+ * @param quantity the quantity of medication to add
+ * @return the updated PharmacyInventoryDto for the pharmacy
+ * @throws ResourceNotFoundException if the pharmacy or medication is not found
+ * @throws IllegalArgumentException if the quantity is less than or equal to zero
+ */
     @Override
     public PharmacyInventoryDto addMedicineToPharmacy(String pharmacyId, String medicationId, int quantity) {
         Pharmacy pharmacy = pharmacyRepository.findById(pharmacyId)
@@ -101,6 +142,15 @@ public class PharmacyServiceImpl implements IPharmacyService {
         return PharmacyInventoryDto.mapToDTO(pharmacyInventoryRepository.save(inventory));
     }
 
+/**
+ * Transfers medication from the main pharmacy to a department pharmacy.
+ * @param departmentPharmacyId the ID of the department pharmacy
+ * @param medicationId the ID of the medication to transfer
+ * @param quantity the quantity of medication to transfer
+ * @return the updated PharmacyInventoryDto for the department pharmacy
+ * @throws ResourceNotFoundException if the department pharmacy, main pharmacy, or medication is not found
+ * @throws UserNotAllowedException if the main pharmacy does not have enough stock or if the department pharmacy is the main pharmacy
+ */
     @Override
     public PharmacyInventoryDto transferMedicationFromMain(String departmentPharmacyId, String medicationId, int quantity) {
         Pharmacy departmentPharmacy = pharmacyRepository.findById(departmentPharmacyId)
@@ -140,7 +190,13 @@ public class PharmacyServiceImpl implements IPharmacyService {
         pharmacyInventoryRepository.save(mainStock);
         return PharmacyInventoryDto.mapToDTO(pharmacyInventoryRepository.save(departmentStock));
     }
-
+/**
+ * Confirms payment and dispenses medication for a given prescription and pharmacy.
+ *
+ * @param prescriptionId the ID of the prescription
+ * @param pharmacyId the ID of the pharmacy
+ * @return a confirmation message
+ */
     @Override
     public String confirmPaymentAndDispense(String prescriptionId, String pharmacyId) {
         Prescription prescription = prescriptionRepository.findById(prescriptionId)
@@ -163,8 +219,10 @@ public class PharmacyServiceImpl implements IPharmacyService {
             throw new UserNotAllowedException("Selected pharmacy does not have enough stock for this prescription");
         }
 
-        Patient patient = patientRepository.findById(prescription.getPatient().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
+        Patient patient = prescription.getPatient();
+        if (patient == null) {
+            throw new ResourceNotFoundException("Patient not found");
+        }
 
         BigDecimal medicationCost = medication.getUnitPrice().multiply(BigDecimal.valueOf(prescription.getQuantity()));
 

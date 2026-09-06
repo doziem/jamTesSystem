@@ -10,6 +10,8 @@ public interface ILabReportService {
 
     List<LabReportDto> getAllLabReports();
 
+    List<LabReportDto> getAllLabReports(int page, int size);
+
     LabReportDto getLabReportById(String id);
 
     List<LabReportDto> getLabReportsByPatientId(String patientId);

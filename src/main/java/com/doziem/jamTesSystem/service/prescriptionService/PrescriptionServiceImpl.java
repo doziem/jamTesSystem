@@ -28,8 +28,22 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
 
     @Override
     public List<PrescriptionDto> getAllPrescriptions() {
+        return getAllPrescriptions(0, 10);
+    }
+
+    @Override
+    public List<PrescriptionDto> getAllPrescriptions(int page, int size) {
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
+
         return prescriptionRepository.findAll()
                 .stream()
+                .skip((long) page * size)
+                .limit(size)
                 .map(PrescriptionDto::mapToDTO)
                 .toList();
     }

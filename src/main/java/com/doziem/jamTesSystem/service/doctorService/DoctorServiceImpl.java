@@ -33,8 +33,21 @@ public class DoctorServiceImpl implements IDoctorService{
 
     @Override
     public List<DoctorDto> getAllDoctors() {
+        return getAllDoctors(0, 10);
+    }
+
+    @Override
+    public List<DoctorDto> getAllDoctors(int page, int size) {
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
 
         return doctorRepository.findAll().stream()
+                .skip((long) page * size)
+                .limit(size)
                 .map(DoctorDto::mapToDTO)
                 .toList();
     }

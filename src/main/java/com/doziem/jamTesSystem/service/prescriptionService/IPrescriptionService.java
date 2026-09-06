@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface IPrescriptionService {
     List<PrescriptionDto> getAllPrescriptions();
 
+    List<PrescriptionDto> getAllPrescriptions(int page, int size);
+
     Optional<PrescriptionDto> getPrescriptionById(String id);
 
     PrescriptionDto savePrescription(PrescriptionDto prescriptionDto);

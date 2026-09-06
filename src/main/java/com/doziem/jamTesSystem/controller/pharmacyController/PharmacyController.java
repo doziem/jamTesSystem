@@ -46,8 +46,12 @@ public class PharmacyController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<PharmacyDto>> getAllPharmacies() {
-        return ResponseEntity.ok(pharmacyService.getAllPharmacies());
+    public ResponseEntity<List<PharmacyDto>> getAllPharmacies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+        return ResponseEntity.ok(pharmacyService.getAllPharmacies(page, size, sortBy, sortDirection));
     }
 
     @GetMapping("/{id}")

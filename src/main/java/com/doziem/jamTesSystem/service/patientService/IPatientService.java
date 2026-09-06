@@ -7,7 +7,8 @@ import java.util.List;
 public interface IPatientService {
     PatientDto createPatient(PatientDto patientDTO);
     PatientDto getPatientById(String id);
-    List<PatientDto> getAllPatients();
+//    add pagination to getAllPatients method
+    List<PatientDto> getAllPatients(int page, int size);
     PatientDto updatePatient(String id, PatientDto patientDTO);
     void deletePatient(String id);
 }

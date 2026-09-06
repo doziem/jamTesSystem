@@ -1,7 +1,10 @@
 package com.doziem.jamTesSystem.controller.pharmacyController;
 
+import com.doziem.jamTesSystem.dto.PharmacyDepartmentPerformanceDto;
 import com.doziem.jamTesSystem.dto.PharmacyDto;
 import com.doziem.jamTesSystem.dto.PharmacyInventoryDto;
+import com.doziem.jamTesSystem.dto.PharmacyMedicationLevelDto;
+import com.doziem.jamTesSystem.dto.PharmacyRecommendationDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
 import com.doziem.jamTesSystem.response.ApiResponse;
@@ -95,5 +98,30 @@ public class PharmacyController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse(false, e.getMessage()));
         }
+    }
+
+    @GetMapping("/recommendations/{medicationId}")
+    public ResponseEntity<ApiResponse> recommendPharmacies(
+            @PathVariable String medicationId,
+            @RequestParam(defaultValue = "1") int minimumQuantity) {
+        try {
+            List<PharmacyRecommendationDto> recommendations = pharmacyService.recommendPharmaciesForMedication(medicationId, minimumQuantity);
+            return ResponseEntity.ok(new ApiResponse(true, "Pharmacy recommendations fetched", recommendations));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse(false, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/dashboard/department-performance")
+    public ResponseEntity<ApiResponse> getDepartmentPerformanceDashboard() {
+        List<PharmacyDepartmentPerformanceDto> dashboard = pharmacyService.getDepartmentPerformanceDashboard();
+        return ResponseEntity.ok(new ApiResponse(true, "Department performance dashboard fetched", dashboard));
+    }
+
+    @GetMapping("/dashboard/medication-levels")
+    public ResponseEntity<ApiResponse> getMedicationLevelsByDepartment() {
+        List<PharmacyMedicationLevelDto> medicationLevels = pharmacyService.getMedicationLevelByDepartment();
+        return ResponseEntity.ok(new ApiResponse(true, "Medication availability by pharmacy department fetched", medicationLevels));
     }
 }

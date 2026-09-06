@@ -27,6 +27,8 @@ public class UserDto {
 
         private Role role;
         private boolean active;
+        private boolean verified;
+        private String emailVerificationToken;
 
         public static UserDto mapToDTO(User user) {
             return UserDto.builder()
@@ -36,6 +38,8 @@ public class UserDto {
                     .phone(user.getPhone())
                     .role(user.getRole())
                     .active(user.isActive())
+                    .verified(user.isVerified())
+                    .emailVerificationToken(user.getEmailVerificationToken())
                     .build();
         }
 
@@ -43,9 +47,10 @@ public class UserDto {
             User user = new User();
             user.setName(dto.getName());
             user.setEmail(dto.getEmail());
-        user.setPhone(dto.getPhone());
+            user.setPhone(dto.getPhone());
             user.setRole(dto.getRole());
             user.setActive(dto.isActive());
+            user.setVerified(dto.isVerified());
             user.setPassword(passwordEncoder.encode(password));
             return user;
         }

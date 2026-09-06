@@ -1,12 +1,16 @@
 package com.doziem.jamTesSystem.service.pharmacyService;
 
 import com.doziem.jamTesSystem.constant.Department;
+import com.doziem.jamTesSystem.dto.PharmacyDepartmentPerformanceDto;
 import com.doziem.jamTesSystem.dto.PharmacyDto;
 import com.doziem.jamTesSystem.dto.PharmacyInventoryDto;
+import com.doziem.jamTesSystem.dto.PharmacyMedicationLevelDto;
+import com.doziem.jamTesSystem.dto.PharmacyRecommendationDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
 import com.doziem.jamTesSystem.model.*;
 import com.doziem.jamTesSystem.repository.*;
+import com.doziem.jamTesSystem.service.emailService.EmailService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -16,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.lang.reflect.Field;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -28,18 +34,21 @@ public class PharmacyServiceImpl implements IPharmacyService {
     private final MedicationRepository medicationRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final BillingRepository billingRepository;
+    private final EmailService emailService;
 
     public PharmacyServiceImpl(
             PharmacyRepository pharmacyRepository,
             PharmacyInventoryRepository pharmacyInventoryRepository,
             MedicationRepository medicationRepository,
             PrescriptionRepository prescriptionRepository,
-            BillingRepository billingRepository) {
+            BillingRepository billingRepository,
+            EmailService emailService) {
         this.pharmacyRepository = pharmacyRepository;
         this.pharmacyInventoryRepository = pharmacyInventoryRepository;
         this.medicationRepository = medicationRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.billingRepository = billingRepository;
+        this.emailService = emailService;
     }
 
     @Override
@@ -219,6 +228,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
             throw new UserNotAllowedException("Selected pharmacy does not have enough stock for this prescription");
         }
 
+
         Patient patient = prescription.getPatient();
         if (patient == null) {
             throw new ResourceNotFoundException("Patient not found");
@@ -245,5 +255,188 @@ public class PharmacyServiceImpl implements IPharmacyService {
         prescriptionRepository.save(prescription);
 
         return "Medication dispensed successfully after patient payment confirmation. Cost: " + medicationCost + ". Billing ID: " + savedBilling.getId();
+    }
+
+/**
+ * Recommends pharmacies for a given medication based on stock availability and other factors.
+ * @param medicationId The ID of the medication to check.
+ * @param minimumQuantity The minimum quantity required.
+ * @return A list of recommended pharmacies with their stock status and recommendation reasons.
+ */
+    @Override
+    public List<PharmacyRecommendationDto> recommendPharmaciesForMedication(String medicationId, int minimumQuantity) {
+        Medication medication = medicationRepository.findById(medicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
+
+        int requiredQuantity = Math.max(minimumQuantity, 0);
+
+        return pharmacyRepository.findAll().stream()
+                .map(pharmacy -> {
+                    PharmacyInventory inventory = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(pharmacy.getId(), medicationId)
+                            .orElse(null);
+
+                    int quantityInStock = inventory != null ? inventory.getQuantityInStock() : 0;
+                    int reorderLevel = inventory != null ? inventory.getReorderLevel() : 10;
+
+                    String status;
+                    String recommendationReason;
+                    if (inventory == null || quantityInStock <= 0) {
+                        status = "OUT_OF_STOCK";
+                        recommendationReason = "No stock in this pharmacy for this medication.";
+                    } else if (quantityInStock < reorderLevel) {
+                        status = "LOW_STOCK";
+                        recommendationReason = "Stock is below the reorder level; replenish or transfer supply.";
+                    } else {
+                        status = "AVAILABLE";
+                        recommendationReason = pharmacy.isMainPharmacy()
+                                ? "Main pharmacy has enough stock and is the preferred supply point."
+                                : "Pharmacy has enough stock to fill the request.";
+                    }
+
+                    double score = 0;
+                    if (quantityInStock > 0) {
+                        score = quantityInStock * 10.0;
+                    }
+                    if (pharmacy.isMainPharmacy()) {
+                        score += 25;
+                    }
+                    if (quantityInStock >= requiredQuantity) {
+                        score += 30;
+                    }
+                    if (quantityInStock < reorderLevel && quantityInStock > 0) {
+                        score -= 15;
+                    }
+                    if (quantityInStock <= 0) {
+                        score = 0;
+                    }
+
+                    return PharmacyRecommendationDto.builder()
+                            .pharmacyId(pharmacy.getId())
+                            .pharmacyName(pharmacy.getName())
+                            .department(pharmacy.getDepartment())
+                            .mainPharmacy(pharmacy.isMainPharmacy())
+                            .mainPharmacyId(pharmacy.getMainPharmacyRef() != null ? pharmacy.getMainPharmacyRef().getId() : null)
+                            .medicationId(medication.getId())
+                            .medicationName(medication.getName())
+                            .quantityInStock(quantityInStock)
+                            .reorderLevel(reorderLevel)
+                            .score(Math.max(0, score))
+                            .status(status)
+                            .recommendationReason(recommendationReason)
+                            .build();
+                })
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparingDouble(PharmacyRecommendationDto::getScore).reversed())
+                .toList();
+    }
+
+/**
+ * Retrieves the performance dashboard for all pharmacy departments.
+ *
+ * @return a list of PharmacyDepartmentPerformanceDto containing performance metrics for each department.
+ */
+
+    @Override
+    public List<PharmacyDepartmentPerformanceDto> getDepartmentPerformanceDashboard() {
+        return pharmacyRepository.findAll().stream()
+                .map(pharmacy -> {
+                    List<PharmacyInventory> inventoryList = pharmacyInventoryRepository.findByPharmacyId(pharmacy.getId());
+                    int totalInventoryItems = inventoryList.size();
+                    int lowStockItems = 0;
+                    int outOfStockItems = 0;
+                    int totalUnitsAvailable = 0;
+                    int totalReorderAlerts = 0;
+
+                    for (PharmacyInventory inventory : inventoryList) {
+                        int stock = inventory.getQuantityInStock();
+                        int reorderLevel = inventory.getReorderLevel();
+                        totalUnitsAvailable += stock;
+
+                        if (stock <= 0) {
+                            outOfStockItems++;
+                            totalReorderAlerts++;
+                        } else if (stock < reorderLevel) {
+                            lowStockItems++;
+                            totalReorderAlerts++;
+                        }
+                    }
+
+                    double stockHealthPercent = totalInventoryItems == 0
+                            ? 100.0
+                            : ((double) (totalInventoryItems - lowStockItems - outOfStockItems) / totalInventoryItems) * 100.0;
+
+                    String status;
+                    if (totalReorderAlerts == 0) {
+                        status = "HEALTHY";
+                    } else if (lowStockItems > 0 && outOfStockItems == 0) {
+                        status = "WATCH_LIST";
+                    } else if (outOfStockItems > 0) {
+                        status = "CRITICAL";
+                    } else {
+                        status = "STABLE";
+                    }
+
+                    return PharmacyDepartmentPerformanceDto.builder()
+                            .pharmacyId(pharmacy.getId())
+                            .pharmacyName(pharmacy.getName())
+                            .department(pharmacy.getDepartment())
+                            .mainPharmacy(pharmacy.isMainPharmacy())
+                            .totalInventoryItems(totalInventoryItems)
+                            .lowStockItems(lowStockItems)
+                            .outOfStockItems(outOfStockItems)
+                            .totalUnitsAvailable(totalUnitsAvailable)
+                            .totalReorderAlerts(totalReorderAlerts)
+                            .stockHealthPercent(Math.max(0, Math.min(100, stockHealthPercent)))
+                            .status(status)
+                            .build();
+                })
+                .sorted(Comparator.comparing(PharmacyDepartmentPerformanceDto::getStatus, Comparator.comparingInt(status -> {
+                    if ("CRITICAL".equals(status)) return 0;
+                    if ("WATCH_LIST".equals(status)) return 1;
+                    if ("STABLE".equals(status)) return 2;
+                    return 3;
+                })).thenComparing(PharmacyDepartmentPerformanceDto::getTotalReorderAlerts).reversed())
+                .toList();
+    }
+
+    @Override
+    public List<PharmacyMedicationLevelDto> getMedicationLevelByDepartment() {
+        return pharmacyRepository.findAll().stream()
+                .flatMap(pharmacy -> pharmacyInventoryRepository.findByPharmacyId(pharmacy.getId()).stream()
+                        .map(inventory -> {
+                            Medication medication = inventory.getMedication();
+                            int quantity = inventory.getQuantityInStock();
+                            String warningLevel = "NORMAL";
+                            String warningMessage = "Sufficient stock available.";
+
+                            if (quantity <= 1) {
+                                warningLevel = "LEVEL_1";
+                                warningMessage = "Critical: only 1 unit left. Immediate restock required.";
+                                emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
+                            } else if (quantity <= 5) {
+                                warningLevel = "LEVEL_5";
+                                warningMessage = "Urgent: stock is at 5 units or below. Reorder soon.";
+                                emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
+                            } else if (quantity <= 10) {
+                                warningLevel = "LEVEL_10";
+                                warningMessage = "Warning: stock is at 10 units or below. Prepare reorder.";
+                                emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
+                            }
+
+                            return PharmacyMedicationLevelDto.builder()
+                                    .pharmacyId(pharmacy.getId())
+                                    .pharmacyName(pharmacy.getName())
+                                    .department(pharmacy.getDepartment())
+                                    .medicationId(medication.getId())
+                                    .medicationName(medication.getName())
+                                    .quantityInStock(quantity)
+                                    .reorderLevel(inventory.getReorderLevel())
+                                    .stockLevel(quantity <= 0 ? "OUT_OF_STOCK" : quantity <= 10 ? "LOW" : "AVAILABLE")
+                                    .warningLevel(warningLevel)
+                                    .warningMessage(warningMessage)
+                                    .emailSent(!"NORMAL".equals(warningLevel))
+                                    .build();
+                        }))
+                .toList();
     }
 }

@@ -44,6 +44,12 @@ public class User {
 
     private boolean active;
 
+    @Column(name = "verified", nullable = false)
+    private boolean verified = false;
+
+    @Column(name = "email_verification_token")
+    private String emailVerificationToken;
+
     @PrePersist
     public void generateId() {
         if (this.id == null || this.id.isBlank()) {

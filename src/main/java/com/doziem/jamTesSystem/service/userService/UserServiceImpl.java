@@ -3,12 +3,14 @@ package com.doziem.jamTesSystem.service.userService;
 import com.doziem.jamTesSystem.dto.UserDto;
 import com.doziem.jamTesSystem.model.User;
 import com.doziem.jamTesSystem.repository.UserRepository;
+import com.doziem.jamTesSystem.service.emailService.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +18,7 @@ public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Override
     public UserDto createUser(UserDto dto) {
@@ -23,8 +26,18 @@ public class UserServiceImpl implements IUserService {
             throw new IllegalArgumentException("Password is required");
         }
 
+        Optional<User> existingUser = userRepository.findByEmailIgnoreCase(dto.getEmail());
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+
         User user = UserDto.mapToEntity(dto, dto.getPassword(), passwordEncoder);
-        return UserDto.mapToDTO(userRepository.save(user));
+        user.setVerified(false);
+        user.setEmailVerificationToken(UUID.randomUUID().toString());
+        User savedUser = userRepository.save(user);
+
+        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getName(), savedUser.getEmailVerificationToken());
+        return UserDto.mapToDTO(savedUser);
     }
 
     @Override

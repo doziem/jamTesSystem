@@ -1,7 +1,10 @@
 package com.doziem.jamTesSystem.service.pharmacyService;
 
+import com.doziem.jamTesSystem.dto.PharmacyDepartmentPerformanceDto;
 import com.doziem.jamTesSystem.dto.PharmacyDto;
 import com.doziem.jamTesSystem.dto.PharmacyInventoryDto;
+import com.doziem.jamTesSystem.dto.PharmacyMedicationLevelDto;
+import com.doziem.jamTesSystem.dto.PharmacyRecommendationDto;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,4 +18,7 @@ public interface IPharmacyService {
     PharmacyInventoryDto addMedicineToPharmacy(String pharmacyId, String medicationId, int quantity);
     PharmacyInventoryDto transferMedicationFromMain(String departmentPharmacyId, String medicationId, int quantity);
     String confirmPaymentAndDispense(String prescriptionId, String pharmacyId);
+    List<PharmacyRecommendationDto> recommendPharmaciesForMedication(String medicationId, int minimumQuantity);
+    List<PharmacyDepartmentPerformanceDto> getDepartmentPerformanceDashboard();
+    List<PharmacyMedicationLevelDto> getMedicationLevelByDepartment();
 }

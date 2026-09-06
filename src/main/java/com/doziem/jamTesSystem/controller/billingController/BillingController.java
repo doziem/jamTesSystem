@@ -43,8 +43,9 @@ public class BillingController {
     }
 
     @GetMapping("/patient/all")
-    public ResponseEntity<List<BillingDto>> getAllBillings() {
-        List<BillingDto> billings = billingService.getAllBillings();
+    public ResponseEntity<List<BillingDto>> getAllBillings(@RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "10") int size) {
+        List<BillingDto> billings = billingService.getAllBillings(page, size);
         return ResponseEntity.ok(billings);
     }
 

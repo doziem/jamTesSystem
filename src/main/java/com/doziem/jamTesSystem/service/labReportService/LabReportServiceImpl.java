@@ -47,7 +47,21 @@ public class LabReportServiceImpl implements ILabReportService{
     @Override
     // Get all lab reports
     public List<LabReportDto> getAllLabReports() {
+        return getAllLabReports(0, 10);
+    }
+
+    @Override
+    public List<LabReportDto> getAllLabReports(int page, int size) {
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
+
         return labReportRepository.findAll().stream()
+                .skip((long) page * size)
+                .limit(size)
                 .map(LabReportDto::mapToDTO)
                 .collect(Collectors.toList());
     }

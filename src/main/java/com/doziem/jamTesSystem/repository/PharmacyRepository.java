@@ -2,6 +2,8 @@ package com.doziem.jamTesSystem.repository;
 
 import com.doziem.jamTesSystem.constant.Department;
 import com.doziem.jamTesSystem.model.Pharmacy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,4 +15,5 @@ public interface PharmacyRepository extends JpaRepository<Pharmacy, String> {
     Optional<Pharmacy> findByDepartmentAndMainPharmacy(Department department, boolean mainPharmacy);
     List<Pharmacy> findByMainPharmacyRefId(String mainPharmacyId);
     Optional<Pharmacy> findByName(String name);
+    Page<Pharmacy> findAll(Pageable pageable);
 }

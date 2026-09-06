@@ -35,8 +35,10 @@ public class PatientController {
 
     // Get all patients
     @GetMapping("/all")
-    public ResponseEntity<List<ApiResponse>> getAllPatients() {
-        return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(true, "All Patient Fetched", patientService.getAllPatients())));
+    public ResponseEntity<List<ApiResponse>> getAllPatients(@RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok().body(Collections.singletonList(new ApiResponse(true, "All Patient Fetched", patientService.getAllPatients(page, size))));
     }
 
     // Update a patient

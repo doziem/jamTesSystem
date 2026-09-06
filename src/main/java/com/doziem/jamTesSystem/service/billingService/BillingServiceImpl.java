@@ -45,10 +45,20 @@ public class BillingServiceImpl implements IBillingService{
         return billingRepository.findById(id).map(BillingDto::mapToDTO);
     }
 
+
     @Override
-    public List<BillingDto> getAllBillings() {
+    public List<BillingDto> getAllBillings(int page, int size) {
+        //initialize the page and size to default values if they are not provided
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
         return billingRepository.findAll()
                 .stream()
+                .skip((long) page * size)
+                .limit(size)
                 .map(BillingDto::mapToDTO)
                 .collect(Collectors.toList());
     }
@@ -78,18 +88,6 @@ public class BillingServiceImpl implements IBillingService{
         }).orElseThrow(() -> new ResourceNotFoundException("Billing record not found"));
     }
 
-//    private Patient updateExistingPatient(Patient existingPatient, PatientDto patientDto) {
-//
-//        existingPatient.setFirstName(patientDto.getFirstName() != null? patientDto.getFirstName(): existingPatient.getLastName());
-//        existingPatient.setLastName(patientDto.getLastName() != null ? patientDto.getLastName() : existingPatient.getLastName());
-//        existingPatient.setEmail(patientDto.getEmail() != null ? patientDto.getEmail() : existingPatient.getEmail());
-//        existingPatient.setPhone(patientDto.getPhone() != null ? patientDto.getPhone() : existingPatient.getPhone());
-//        existingPatient.setDateOfBirth(patientDto.getDateOfBirth() != null ? patientDto.getDateOfBirth() : existingPatient.getDateOfBirth());
-//        existingPatient.setGender(patientDto.getGender() != null ? patientDto.getGender() : existingPatient.getGender());
-//        existingPatient.setAddress(patientDto.getAddress() != null ? patientDto.getAddress() : existingPatient.getAddress());
-//        existingPatient.setActive(Boolean.FALSE.equals(patientDto.isActive()));
-//        return existingPatient;
-//    }
     @Override
     public ApiResponse deleteBilling(@PathVariable String id) {
         Optional<BillingDto> billingDto = getBillingById(id);

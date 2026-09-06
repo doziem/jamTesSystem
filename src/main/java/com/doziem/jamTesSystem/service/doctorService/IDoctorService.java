@@ -10,6 +10,8 @@ public interface IDoctorService {
 
     List<DoctorDto> getAllDoctors();
 
+    List<DoctorDto> getAllDoctors(int page, int size);
+
     DoctorDto getDoctorById(String id);
 
     DoctorDto updateDoctor(String id, DoctorDto dto);

@@ -86,6 +86,13 @@ public class PatientDto {
 
     // Convert Entity → DTO
     public static PatientDto mapToDTO(Patient patient) {
+        List<LabReportDto> labReports = patient.getLabReports() == null ? new ArrayList<>()
+                : patient.getLabReports().stream().map(LabReportDto::mapToDTO).toList();
+        List<PrescriptionDto> prescriptions = patient.getPrescriptions() == null ? new ArrayList<>()
+                : patient.getPrescriptions().stream().map(PrescriptionDto::mapToDTO).toList();
+        List<BillingDto> billingRecords = patient.getBillingRecords() == null ? new ArrayList<>()
+                : patient.getBillingRecords().stream().map(BillingDto::mapToDTO).toList();
+
         return new PatientDto(
                 patient.getId(),
                 patient.getFirstName(),
@@ -96,9 +103,9 @@ public class PatientDto {
                 patient.getGender(),
                 patient.getAddress(),
                 patient.isActive(),
-                patient.getLabReports().stream().map(LabReportDto::mapToDTO).toList(),
-                patient.getPrescriptions().stream().map(PrescriptionDto::mapToDTO).toList(),
-                patient.getBillingRecords().stream().map(BillingDto::mapToDTO).toList()
+                labReports,
+                prescriptions,
+                billingRecords
         );
     }
 

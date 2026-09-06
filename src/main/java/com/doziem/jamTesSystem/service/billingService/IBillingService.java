@@ -9,7 +9,8 @@ import java.util.Optional;
 public interface IBillingService {
     BillingDto createBilling(BillingDto billingDto);
     Optional<BillingDto> getBillingById(String id);
-    List<BillingDto> getAllBillings();
+//   add pagination to getAllBillings method
+    List<BillingDto> getAllBillings(int page, int size);
     List<BillingDto> getBillingsByPatientId(String patientId);
     BillingDto updateBilling(String id, BillingDto billingDto);
     ApiResponse deleteBilling(String id);

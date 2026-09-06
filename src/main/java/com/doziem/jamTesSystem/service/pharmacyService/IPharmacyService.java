@@ -10,6 +10,7 @@ public interface IPharmacyService {
     PharmacyDto createMainPharmacy(PharmacyDto pharmacyDto);
     PharmacyDto createDepartmentPharmacy(String mainPharmacyId, PharmacyDto pharmacyDto);
     List<PharmacyDto> getAllPharmacies();
+    List<PharmacyDto> getAllPharmacies(int page, int size, String sortBy, String sortDirection);
     Optional<PharmacyDto> getPharmacyById(String id);
     PharmacyInventoryDto addMedicineToPharmacy(String pharmacyId, String medicationId, int quantity);
     PharmacyInventoryDto transferMedicationFromMain(String departmentPharmacyId, String medicationId, int quantity);

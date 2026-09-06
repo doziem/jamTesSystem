@@ -33,8 +33,10 @@ public class AuthService {
         // Debug: Log the login attempt
         System.out.println("Login attempt with: " + request.getEmailOrPhone());
 
+        String loginIdentifier = request.getEmailOrPhone();
+
         // Fetch user by email or phone
-        Optional<User> optionalUser = userRepository.findByEmailOrPhone(request.getEmailOrPhone());
+        Optional<User> optionalUser = userRepository.findByEmailOrPhone(loginIdentifier);
         // Debug: Check if user exists
         System.out.println("User found: " + optionalUser.isPresent());
 
@@ -44,9 +46,9 @@ public class AuthService {
 
         User user = optionalUser.get();
 
-        // Authenticate user
+        // Authenticate using the identifier that was provided by the client so both email and phone logins work
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(user.getEmail(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(loginIdentifier, request.getPassword())
         );
 
         // Generate JWT token

@@ -3,7 +3,8 @@
 ## Current status
 - Doctor and prescription CRUD/dashboard work is complete.
 - Auth login and registration tests were added and verified.
-- Targeted Maven verification passes on the auth suite.
+- Patient controller/service tests were added and verified.
+- Targeted Maven verification passes on the auth and patient suites.
 
 ## Next steps
 - If needed, expand coverage to additional auth edge cases.

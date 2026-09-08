@@ -1,6 +1,8 @@
 package com.doziem.jamTesSystem.service.patientService;
 
 import com.doziem.jamTesSystem.dto.PatientDto;
+import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
+import com.doziem.jamTesSystem.mapper.PatientMapper;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
@@ -10,11 +12,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,8 +28,73 @@ class PatienceServiceTest {
     @Mock
     private PatientRepository patientRepository;
 
+    @Mock
+    private PatientMapper patientMapper;
+
     @InjectMocks
     private PatienceService patienceService;
+
+    @Test
+    void createPatientSavesAndReturnsDto() {
+        PatientDto request = new PatientDto();
+        request.setFirstName("Jane");
+        request.setLastName("Doe");
+        request.setEmail("jane@example.com");
+        request.setPhone("08012345678");
+        request.setDateOfBirth(LocalDate.of(2000, 1, 1));
+        request.setGender("F");
+        request.setActive(true);
+
+        Patient patient = new Patient();
+        patient.setId("p-1");
+        patient.setFirstName("Jane");
+        patient.setLastName("Doe");
+        patient.setEmail("jane@example.com");
+        patient.setPhone("08012345678");
+        patient.setDateOfBirth(LocalDate.of(2000, 1, 1));
+        patient.setGender("F");
+        patient.setActive(true);
+
+        when(patientMapper.toEntity(any(PatientDto.class), any(Patient.class))).thenReturn(patient);
+        when(patientRepository.save(patient)).thenReturn(patient);
+        when(patientMapper.toDto(patient)).thenReturn(request);
+
+        PatientDto result = patienceService.createPatient(request);
+
+        assertEquals("Jane", result.getFirstName());
+        assertEquals("Doe", result.getLastName());
+    }
+
+    @Test
+    void getPatientByIdReturnsDto() {
+        Patient patient = new Patient();
+        patient.setId("p-1");
+        patient.setFirstName("Jane");
+        patient.setLastName("Doe");
+
+        when(patientRepository.findById("p-1")).thenReturn(Optional.of(patient));
+        when(patientMapper.toDto(patient)).thenReturn(buildPatientDto("p-1", "Jane", "Doe"));
+
+        PatientDto result = patienceService.getPatientById("p-1");
+
+        assertEquals("p-1", result.getId());
+        assertEquals("Jane", result.getFirstName());
+    }
+
+    @Test
+    void getAllPatientsReturnsPagedList() {
+        Patient patient = new Patient();
+        patient.setId("p-1");
+        patient.setFirstName("Jane");
+        patient.setLastName("Doe");
+
+        when(patientRepository.findAll()).thenReturn(List.of(patient));
+        when(patientMapper.toDto(patient)).thenReturn(buildPatientDto("p-1", "Jane", "Doe"));
+
+        List<PatientDto> result = patienceService.getAllPatients(0, 10);
+
+        assertEquals(1, result.size());
+    }
 
     @Test
     void updatePatient_keepsExistingValuesAndSetsActiveState() {
@@ -40,6 +110,19 @@ class PatienceServiceTest {
 
         when(patientRepository.findById("p-1")).thenReturn(Optional.of(existingPatient));
         when(patientRepository.save(any(Patient.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(patientMapper.toDto(any(Patient.class))).thenAnswer(invocation -> {
+            Patient patient = invocation.getArgument(0);
+            PatientDto dto = new PatientDto();
+            dto.setId(patient.getId());
+            dto.setFirstName(patient.getFirstName());
+            dto.setLastName(patient.getLastName());
+            dto.setEmail(patient.getEmail());
+            dto.setPhone(patient.getPhone());
+            dto.setDateOfBirth(patient.getDateOfBirth());
+            dto.setGender(patient.getGender());
+            dto.setActive(patient.isActive());
+            return dto;
+        });
 
         PatientDto updateRequest = new PatientDto();
         updateRequest.setFirstName("Grace");
@@ -56,5 +139,32 @@ class PatienceServiceTest {
         assertEquals("Hopper", updated.getLastName());
         assertEquals("grace@example.com", updated.getEmail());
         assertTrue(updated.isActive());
+    }
+
+    @Test
+    void deletePatientDeletesWhenPresent() {
+        Patient patient = new Patient();
+        patient.setId("p-1");
+
+        when(patientRepository.findById("p-1")).thenReturn(Optional.of(patient));
+
+        patienceService.deletePatient("p-1");
+
+        verify(patientRepository).delete(patient);
+    }
+
+    @Test
+    void getPatientByIdThrowsWhenMissing() {
+        when(patientRepository.findById("missing")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> patienceService.getPatientById("missing"));
+    }
+
+    private PatientDto buildPatientDto(String id, String firstName, String lastName) {
+        PatientDto dto = new PatientDto();
+        dto.setId(id);
+        dto.setFirstName(firstName);
+        dto.setLastName(lastName);
+        return dto;
     }
 }

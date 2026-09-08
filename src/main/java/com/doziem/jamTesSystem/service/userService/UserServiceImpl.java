@@ -1,17 +1,18 @@
 package com.doziem.jamTesSystem.service.userService;
 
 import com.doziem.jamTesSystem.dto.UserDto;
+import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
 import com.doziem.jamTesSystem.model.User;
 import com.doziem.jamTesSystem.mapper.UserMapper;
 import com.doziem.jamTesSystem.repository.UserRepository;
-import com.doziem.jamTesSystem.service.emailService.EmailService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -48,7 +49,11 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public Optional<UserDto> updateUser(String id, UserDto dto, String password) {
+    public Optional<UserDto> updateUser(String id, UserDto dto, String password, Authentication authentication) {
+        if (!canAccessUser(id, authentication)) {
+            throw new UserNotAllowedException("You are not allowed to update this user");
+        }
+
         return userRepository.findById(id).map(user -> {
             if (dto.getName() != null) user.setName(dto.getName());
             if (dto.getEmail() != null) user.setEmail(dto.getEmail());
@@ -63,7 +68,11 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public Optional<UserDto> deactivateUser(String id) {
+    public Optional<UserDto> deactivateUser(String id, Authentication authentication) {
+        if (!canAccessUser(id, authentication)) {
+            throw new UserNotAllowedException("You are not allowed to deactivate this user");
+        }
+
         return userRepository.findById(id).map(user -> {
             user.setActive(false);
             return userMapper.toDto(userRepository.save(user));
@@ -71,7 +80,11 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public Optional<String> deleteUser(String id) {
+    public Optional<String> deleteUser(String id, Authentication authentication) {
+        if (!isAdmin(authentication)) {
+            throw new UserNotAllowedException("Only admin users can delete users");
+        }
+
         return userRepository.findById(id).map(user -> {
             if (user.isActive()) {
                 throw new IllegalStateException("Only deactivated accounts can be deleted");
@@ -79,5 +92,29 @@ public class UserServiceImpl implements IUserService {
             userRepository.deleteById(id);
             return "User deleted successfully.";
         });
+    }
+
+    @Override
+    public boolean canAccessUser(String id, Authentication authentication) {
+        return isAdmin(authentication) || isCurrentUser(id, authentication);
+    }
+
+    @Override
+    public boolean isAdmin(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+
+    private boolean isCurrentUser(String id, Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return false;
+        }
+        if (!(authentication.getPrincipal() instanceof UserDetails userDetails)) {
+            return false;
+        }
+
+        return userRepository.findByEmailIgnoreCase(userDetails.getUsername())
+                .map(user -> user.getId().equals(id))
+                .orElse(false);
     }
 }

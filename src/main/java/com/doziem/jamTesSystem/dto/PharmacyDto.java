@@ -20,25 +20,6 @@ public class PharmacyDto {
     private boolean mainPharmacy;
     private String mainPharmacyId;
 
-    public static Pharmacy mapToEntity(PharmacyDto dto, Pharmacy mainPharmacyRef) {
-        Pharmacy pharmacy = new Pharmacy();
-        pharmacy.setName(dto.getName());
-        pharmacy.setDepartment(dto.getDepartment());
-        pharmacy.setMainPharmacy(dto.isMainPharmacy());
-        pharmacy.setMainPharmacyRef(mainPharmacyRef);
-        return pharmacy;
-    }
-
-    public static PharmacyDto mapToDTO(Pharmacy pharmacy) {
-        String parentId = pharmacy.getMainPharmacyRef() != null ? pharmacy.getMainPharmacyRef().getId() : null;
-        return new PharmacyDto(
-                pharmacy.getId(),
-                pharmacy.getName(),
-                pharmacy.getDepartment(),
-                pharmacy.isMainPharmacy(),
-                parentId
-        );
-    }
 
     public String getId() {
         return id;

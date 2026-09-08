@@ -23,18 +23,12 @@ import java.util.Optional;
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private final IUserService userService;
-
     private final AuthService authService;
     private final UserRepository userRepository;
-    private final EmailService emailService;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, IUserService userService, UserRepository userRepository, IUserService userService1, AuthService authService, EmailService emailService) {
-        this.userService = userService1;
+    public AuthController(UserRepository userRepository,  AuthService authService) {
         this.authService = authService;
         this.userRepository = userRepository;
-        this.emailService = emailService;
     }
 
     @PostMapping("/login")
@@ -48,12 +42,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse> createUser(@RequestBody UserDto userDto) {
+    public ResponseEntity<AuthResponse> createUser(@RequestBody UserDto userDto) {
         try {
-            UserDto createdUser = userService.createUser(userDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse(true, "User created successfully. Please check your email for verification.", createdUser));
+            AuthResponse createdUser = authService.createUser(userDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, e.getMessage() != null ? e.getMessage() : "Error creating user"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(e.getMessage() != null ? e.getMessage() : "Error creating user"));
         }
     }
 

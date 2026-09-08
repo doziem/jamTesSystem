@@ -2,6 +2,7 @@ package com.doziem.jamTesSystem.service.billingService;
 
 import com.doziem.jamTesSystem.dto.BillingDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
+import com.doziem.jamTesSystem.mapper.BillingMapper;
 import com.doziem.jamTesSystem.model.Billing;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.repository.BillingRepository;
@@ -24,10 +25,12 @@ public class BillingServiceImpl implements IBillingService{
 
     private final BillingRepository billingRepository;
     private final PatientRepository patientRepository;
+    private final BillingMapper billingMapper;
 
-    public BillingServiceImpl(BillingRepository billingRepository, PatientRepository patientRepository) {
+    public BillingServiceImpl(BillingRepository billingRepository, PatientRepository patientRepository, BillingMapper billingMapper) {
         this.billingRepository = billingRepository;
         this.patientRepository = patientRepository;
+        this.billingMapper = billingMapper;
     }
 
     @Override
@@ -35,14 +38,14 @@ public class BillingServiceImpl implements IBillingService{
         Patient patient = patientRepository.findById(billingDto.getPatientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
 
-        Billing billing = BillingDto.mapToEntity(billingDto, patient);
+        Billing billing = billingMapper.toEntity(billingDto, patient);
         Billing savedBilling = billingRepository.save(billing);
-        return BillingDto.mapToDTO(savedBilling);
+        return billingMapper.toDto(savedBilling);
     }
 
     @Override
     public Optional<BillingDto> getBillingById(@PathVariable String id) {
-        return billingRepository.findById(id).map(BillingDto::mapToDTO);
+        return billingRepository.findById(id).map(billingMapper::toDto);
     }
 
 
@@ -59,7 +62,7 @@ public class BillingServiceImpl implements IBillingService{
                 .stream()
                 .skip((long) page * size)
                 .limit(size)
-                .map(BillingDto::mapToDTO)
+                .map(billingMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -73,7 +76,7 @@ public class BillingServiceImpl implements IBillingService{
         }
 
         return billings.stream()
-                .map(BillingDto::mapToDTO)
+                .map(billingMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -84,7 +87,7 @@ public class BillingServiceImpl implements IBillingService{
             billing.setTotalAmount(billingDto.getTotalAmount() != null ? billingDto.getTotalAmount() : billing.getTotalAmount());
             billing.setPaymentMethod(billingDto.getPaymentMethod() != null ? billingDto.getPaymentMethod() : billing.getPaymentMethod());
             billing.setBillingDate(billingDto.getBillingDate() != null ? billingDto.getBillingDate() : billing.getBillingDate());
-            return BillingDto.mapToDTO(billingRepository.save(billing));
+            return billingMapper.toDto(billingRepository.save(billing));
         }).orElseThrow(() -> new ResourceNotFoundException("Billing record not found"));
     }
 

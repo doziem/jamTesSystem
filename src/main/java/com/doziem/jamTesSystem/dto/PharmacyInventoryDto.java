@@ -21,17 +21,6 @@ public class PharmacyInventoryDto {
     private int quantityInStock;
     private int reorderLevel;
 
-    public static PharmacyInventoryDto mapToDTO(PharmacyInventory inventory) {
-        Medication medication = inventory.getMedication();
-        return new PharmacyInventoryDto(
-                inventory.getId(),
-                inventory.getPharmacy().getId(),
-                medication.getId(),
-                medication.getName(),
-                inventory.getQuantityInStock(),
-                inventory.getReorderLevel()
-        );
-    }
 
     public String getId() {
         return id;

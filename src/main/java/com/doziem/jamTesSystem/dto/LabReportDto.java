@@ -14,6 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
+@Builder
 public class LabReportDto {
     private String id;
     private String patientId;
@@ -40,33 +41,4 @@ public class LabReportDto {
         this.labRequestId = labRequestId;
     }
 
-    public static LabReport mapToEntity(LabReportDto dto, Patient patient, LabRequest labRequest) {
-        return new LabReport(
-                dto.getId(),
-                patient,
-                labRequest,
-                dto.getTestName(),
-                dto.getResult(),
-                dto.getReportDate(),
-                dto.getRequestDate(),
-                dto.getConductedBy()
-        );
-    }
-
-    public static LabReportDto mapToDTO(LabReport labReport) {
-        if (labReport.getLabRequest() == null || labReport.getLabRequest().getRequestedBy() == null) {
-            throw new IllegalStateException("Lab request and requesting doctor must be present for lab report mapping");
-        }
-        return new LabReportDto(
-                labReport.getId(),
-                labReport.getPatient().getId(),
-                labReport.getLabRequest().getRequestedBy().getId(),
-                labReport.getTestName(),
-                labReport.getResult(),
-                labReport.getReportDate(),
-                labReport.getRequestDate(),
-                labReport.getConductedBy(),
-                labReport.getLabRequest().getId()
-        );
-    }
 }

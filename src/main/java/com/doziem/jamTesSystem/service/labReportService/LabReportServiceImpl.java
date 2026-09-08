@@ -4,6 +4,7 @@ import com.doziem.jamTesSystem.constant.Role;
 import com.doziem.jamTesSystem.dto.LabReportDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
+import com.doziem.jamTesSystem.mapper.LabReportMapper;
 import com.doziem.jamTesSystem.model.LabReport;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.model.User;
@@ -23,6 +24,7 @@ public class LabReportServiceImpl implements ILabReportService{
     private final LabReportRepository labReportRepository;
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
+    private final LabReportMapper labReportMapper;
 
 
     @Override
@@ -38,10 +40,10 @@ public class LabReportServiceImpl implements ILabReportService{
             throw new UserNotAllowedException("Only a Doctor can request a test");
         }
 
-        LabReport labReport = LabReportDto.mapToEntity(dto, patient, null);
+        LabReport labReport = labReportMapper.toEntity(dto, patient, null);
         labReport.setPatient(patient);
 
-        return LabReportDto.mapToDTO(labReportRepository.save(labReport));
+        return labReportMapper.toDto(labReportRepository.save(labReport));
     }
 
     @Override
@@ -62,7 +64,7 @@ public class LabReportServiceImpl implements ILabReportService{
         return labReportRepository.findAll().stream()
                 .skip((long) page * size)
                 .limit(size)
-                .map(LabReportDto::mapToDTO)
+                .map(labReportMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -72,7 +74,7 @@ public class LabReportServiceImpl implements ILabReportService{
         LabReport labReport = labReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lab Report not found"));
 
-        return LabReportDto.mapToDTO(labReport);
+        return labReportMapper.toDto(labReport);
     }
 
     @Override
@@ -85,7 +87,7 @@ public class LabReportServiceImpl implements ILabReportService{
         }
 
         return labReports.stream()
-                .map(LabReportDto::mapToDTO)
+                .map(labReportMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -96,7 +98,7 @@ public class LabReportServiceImpl implements ILabReportService{
             throw new ResourceNotFoundException("No lab reports found for doctor: " + requestedBy);
         }
         return labReports.stream()
-                .map(LabReportDto::mapToDTO)
+                .map(labReportMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -124,7 +126,7 @@ public class LabReportServiceImpl implements ILabReportService{
         labReport.setReportDate(dto.getReportDate() != null ? dto.getReportDate() : labReport.getReportDate());
         labReport.setConductedBy(dto.getConductedBy() != null ? dto.getConductedBy() : labReport.getConductedBy());
 
-        return LabReportDto.mapToDTO(labReportRepository.save(labReport));
+        return labReportMapper.toDto(labReportRepository.save(labReport));
     }
 
     // Delete a lab report

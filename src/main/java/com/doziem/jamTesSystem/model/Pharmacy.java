@@ -2,7 +2,10 @@ package com.doziem.jamTesSystem.model;
 
 import com.doziem.jamTesSystem.constant.Department;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
@@ -12,6 +15,9 @@ import java.util.UUID;
 @Setter
 @Getter
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "pharmacies")
 public class Pharmacy {
 
@@ -36,17 +42,6 @@ public class Pharmacy {
 
     @OneToMany(mappedBy = "pharmacy", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PharmacyInventory> inventory = new ArrayList<>();
-
-    public Pharmacy() {
-    }
-
-    public Pharmacy(String id, String name, Department department, boolean mainPharmacy, Pharmacy mainPharmacyRef) {
-        this.id = id;
-        this.name = name;
-        this.department = department;
-        this.mainPharmacy = mainPharmacy;
-        this.mainPharmacyRef = mainPharmacyRef;
-    }
 
     @PrePersist
     public void generateId() {

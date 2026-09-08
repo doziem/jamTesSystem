@@ -2,8 +2,13 @@ package com.doziem.jamTesSystem.service.patientService;
 
 import com.doziem.jamTesSystem.dto.PatientDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
+import com.doziem.jamTesSystem.mapper.BillingMapper;
+import com.doziem.jamTesSystem.mapper.LabReportMapper;
+import com.doziem.jamTesSystem.mapper.PatientMapper;
+import com.doziem.jamTesSystem.mapper.PrescriptionMapper;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.repository.PatientRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,23 +18,33 @@ import java.util.stream.Collectors;
 @Service
 public class PatienceService implements IPatientService{
     private final PatientRepository patientRepository;
+    private PatientMapper patientMapper = new PatientMapper(
+            new BillingMapper(),
+            new LabReportMapper(),
+            new PrescriptionMapper());
 
     public PatienceService(PatientRepository patientRepository) {
         this.patientRepository = patientRepository;
     }
 
+    @Autowired
+    public PatienceService(PatientRepository patientRepository, PatientMapper patientMapper) {
+        this.patientRepository = patientRepository;
+        this.patientMapper = patientMapper != null ? patientMapper : this.patientMapper;
+    }
+
     @Override
     // Create a new patient
     public PatientDto createPatient(PatientDto patientDto) {
-        Patient patient = PatientDto.mapToEntity(patientDto, new Patient());
-        return PatientDto.mapToDTO(patientRepository.save(patient));
+        Patient patient = patientMapper.toEntity(patientDto, new Patient());
+        return patientMapper.toDto(patientRepository.save(patient));
     }
 
     // Retrieve a patient by ID
     @Override
     public PatientDto getPatientById(String id) {
         return patientRepository.findById(id)
-                .map(PatientDto::mapToDTO)
+                .map(patientMapper::toDto)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
     }
 
@@ -48,7 +63,7 @@ public class PatienceService implements IPatientService{
                 .stream()
                 .skip((long) page * size)
                 .limit(size)
-                .map(PatientDto::mapToDTO)
+                .map(patientMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -58,7 +73,7 @@ public class PatienceService implements IPatientService{
         Patient existingPatient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
         Patient updatedPatient = patientRepository.save(updateExistingPatient(existingPatient,patientDTO));
-        return PatientDto.mapToDTO(updatedPatient);
+        return patientMapper.toDto(updatedPatient);
     }
 
     private Patient updateExistingPatient(Patient existingPatient,PatientDto patientDto) {

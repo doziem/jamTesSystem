@@ -2,6 +2,9 @@ package com.doziem.jamTesSystem.controller.doctorController;
 
 
 import com.doziem.jamTesSystem.dto.DoctorDto;
+import com.doziem.jamTesSystem.dto.DoctorDashboardDto;
+import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
+import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
 import com.doziem.jamTesSystem.service.doctorService.IDoctorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +46,17 @@ public class DoctorController {
     public ResponseEntity<Void> deleteDoctor(@PathVariable String id) {
         doctorService.deleteDoctor(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/dashboard")
+    public ResponseEntity<DoctorDashboardDto> getDoctorDashboard(@PathVariable String id) {
+        try {
+            return ResponseEntity.ok(doctorService.getDashboard(id));
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (UserNotAllowedException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
     }
 
 

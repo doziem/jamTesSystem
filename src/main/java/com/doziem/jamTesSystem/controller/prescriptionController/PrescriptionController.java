@@ -2,12 +2,13 @@ package com.doziem.jamTesSystem.controller.prescriptionController;
 
 import com.doziem.jamTesSystem.dto.PrescriptionDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
-import com.doziem.jamTesSystem.model.Patient;
+import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
 import com.doziem.jamTesSystem.response.ApiResponse;
 import com.doziem.jamTesSystem.service.prescriptionService.IPrescriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,24 +33,29 @@ public class PrescriptionController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse> createPrescription(@RequestBody PrescriptionDto prescriptionDto) {
+    public ResponseEntity<ApiResponse> createPrescription(@RequestBody PrescriptionDto prescriptionDto, Authentication authentication) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new ApiResponse(true, "Prescription Created", prescriptionService.savePrescription(prescriptionDto)));
-        }catch (ResourceNotFoundException e){
+                    .body(new ApiResponse(true, "Prescription Created", prescriptionService.prescribeMedication(prescriptionDto, authentication)));
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ApiResponse(false, e.getMessage()));
-        }catch (Exception e){
+        } catch (UserNotAllowedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse(false, e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, e.getMessage()));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse(false, e.getMessage()));
         }
-
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PrescriptionDto> updatePrescription(@PathVariable String id, @RequestBody PrescriptionDto prescriptionDto) {
+    public ResponseEntity<PrescriptionDto> updatePrescription(@PathVariable String id, @RequestBody PrescriptionDto prescriptionDto, Authentication authentication) {
         try {
-            return ResponseEntity.ok(prescriptionService.updatePrescription(id, prescriptionDto));
+            return ResponseEntity.ok(prescriptionService.updatePrescription(id, prescriptionDto, authentication));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }

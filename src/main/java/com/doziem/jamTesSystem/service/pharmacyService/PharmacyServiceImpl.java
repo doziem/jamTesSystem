@@ -8,6 +8,8 @@ import com.doziem.jamTesSystem.dto.PharmacyMedicationLevelDto;
 import com.doziem.jamTesSystem.dto.PharmacyRecommendationDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
+import com.doziem.jamTesSystem.mapper.PharmacyInventoryMapper;
+import com.doziem.jamTesSystem.mapper.PharmacyMapper;
 import com.doziem.jamTesSystem.model.*;
 import com.doziem.jamTesSystem.repository.*;
 import com.doziem.jamTesSystem.service.emailService.EmailService;
@@ -35,6 +37,8 @@ public class PharmacyServiceImpl implements IPharmacyService {
     private final PrescriptionRepository prescriptionRepository;
     private final BillingRepository billingRepository;
     private final EmailService emailService;
+    private final PharmacyMapper pharmacyMapper;
+    private final PharmacyInventoryMapper pharmacyInventoryMapper;
 
     public PharmacyServiceImpl(
             PharmacyRepository pharmacyRepository,
@@ -42,21 +46,25 @@ public class PharmacyServiceImpl implements IPharmacyService {
             MedicationRepository medicationRepository,
             PrescriptionRepository prescriptionRepository,
             BillingRepository billingRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            PharmacyMapper pharmacyMapper,
+            PharmacyInventoryMapper pharmacyInventoryMapper) {
         this.pharmacyRepository = pharmacyRepository;
         this.pharmacyInventoryRepository = pharmacyInventoryRepository;
         this.medicationRepository = medicationRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.billingRepository = billingRepository;
         this.emailService = emailService;
+        this.pharmacyMapper = pharmacyMapper;
+        this.pharmacyInventoryMapper = pharmacyInventoryMapper;
     }
 
     @Override
     public PharmacyDto createMainPharmacy(PharmacyDto pharmacyDto) {
-        Pharmacy pharmacy = PharmacyDto.mapToEntity(pharmacyDto, null);
+        Pharmacy pharmacy = pharmacyMapper.toEntity(pharmacyDto, null);
         pharmacy.setMainPharmacy(true);
         pharmacy.setDepartment(Department.MAIN_PHARMACY);
-        return PharmacyDto.mapToDTO(pharmacyRepository.save(pharmacy));
+        return pharmacyMapper.toDto(pharmacyRepository.save(pharmacy));
     }
 
     @Override
@@ -67,10 +75,10 @@ public class PharmacyServiceImpl implements IPharmacyService {
             throw new UserNotAllowedException("The selected pharmacy is not the main pharmacy");
         }
 
-        Pharmacy pharmacy = PharmacyDto.mapToEntity(pharmacyDto, mainPharmacy);
+        Pharmacy pharmacy = pharmacyMapper.toEntity(pharmacyDto, mainPharmacy);
         pharmacy.setMainPharmacy(false);
         pharmacy.setMainPharmacyRef(mainPharmacy);
-        return PharmacyDto.mapToDTO(pharmacyRepository.save(pharmacy));
+        return pharmacyMapper.toDto(pharmacyRepository.save(pharmacy));
     }
 
     @Override
@@ -98,7 +106,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
         return pharmacyRepository.findAll(pageable)
                 .getContent()
                 .stream()
-                .map(PharmacyDto::mapToDTO)
+                .map(pharmacyMapper::toDto)
                 .toList();
     }
 
@@ -115,7 +123,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
 
     @Override
     public Optional<PharmacyDto> getPharmacyById(String id) {
-        return pharmacyRepository.findById(id).map(PharmacyDto::mapToDTO);
+        return pharmacyRepository.findById(id).map(pharmacyMapper::toDto);
     }
 /**
  * Adds a specified quantity of medication to a pharmacy's inventory.
@@ -148,7 +156,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
                 });
 
         inventory.setQuantityInStock(inventory.getQuantityInStock() + quantity);
-        return PharmacyInventoryDto.mapToDTO(pharmacyInventoryRepository.save(inventory));
+        return pharmacyInventoryMapper.toDto(pharmacyInventoryRepository.save(inventory));
     }
 
 /**
@@ -197,7 +205,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
         mainStock.setQuantityInStock(mainStock.getQuantityInStock() - quantity);
         departmentStock.setQuantityInStock(departmentStock.getQuantityInStock() + quantity);
         pharmacyInventoryRepository.save(mainStock);
-        return PharmacyInventoryDto.mapToDTO(pharmacyInventoryRepository.save(departmentStock));
+        return pharmacyInventoryMapper.toDto(pharmacyInventoryRepository.save(departmentStock));
     }
 /**
  * Confirms payment and dispenses medication for a given prescription and pharmacy.

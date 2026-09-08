@@ -32,26 +32,5 @@ public class DoctorDto {
         this.availability = availability;
     }
 
-    public static Doctor mapToEntity(DoctorDto dto, User user) {
-        return new Doctor(
-                dto.getId(),
-                dto.getFirstName(),
-                dto.getLastName(),
-                dto.getSpecialization(),
-                dto.getExperience(),
-                user,
-                dto.getAvailability());
-    }
-
-    public static DoctorDto mapToDTO(Doctor doctor) {
-        return new DoctorDto(
-                doctor.getId(),
-                doctor.getFirstName(),
-                doctor.getLastName(),
-                doctor.getSpecialization(),
-                doctor.getExperience(),
-                doctor.getUser().getId(),
-                doctor.getAvailability());
-    }
 
 }

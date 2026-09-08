@@ -3,12 +3,14 @@ package com.doziem.jamTesSystem.dto;
 import com.doziem.jamTesSystem.model.Medication;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -19,25 +21,6 @@ public class MedicationDto {
     private String category;
     private BigDecimal unitPrice;
     private boolean active;
-
-    public static MedicationDto mapToDTO(Medication medication) {
-        return new MedicationDto(
-                medication.getId(),
-                medication.getName(),
-                medication.getCategory(),
-                medication.getUnitPrice(),
-                medication.isActive()
-        );
-    }
-
-    public static Medication mapToEntity(MedicationDto dto) {
-        Medication medication = new Medication();
-        medication.setName(dto.getName());
-        medication.setCategory(dto.getCategory());
-        medication.setUnitPrice(dto.getUnitPrice());
-        medication.setActive(dto.isActive());
-        return medication;
-    }
 
     public String getId() {
         return id;

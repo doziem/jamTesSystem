@@ -2,6 +2,7 @@ package com.doziem.jamTesSystem.service.prescriptionService;
 
 import com.doziem.jamTesSystem.dto.PrescriptionDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
+import com.doziem.jamTesSystem.mapper.PrescriptionMapper;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.model.Pharmacy;
 import com.doziem.jamTesSystem.model.Prescription;
@@ -26,6 +27,9 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
     @Autowired
     private PharmacyRepository pharmacyRepository;
 
+    @Autowired
+    private PrescriptionMapper prescriptionMapper;
+
     @Override
     public List<PrescriptionDto> getAllPrescriptions() {
         return getAllPrescriptions(0, 10);
@@ -44,14 +48,14 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
                 .stream()
                 .skip((long) page * size)
                 .limit(size)
-                .map(PrescriptionDto::mapToDTO)
+                .map(prescriptionMapper::toDto)
                 .toList();
     }
 
     @Override
     public Optional<PrescriptionDto> getPrescriptionById(String id) {
         return prescriptionRepository.findById(id)
-                .map(PrescriptionDto::mapToDTO);
+                .map(prescriptionMapper::toDto);
     }
 
     @Override
@@ -62,9 +66,9 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
         Pharmacy pharmacy = prescriptionDto.getPharmacyId() == null ? null : pharmacyRepository.findById(prescriptionDto.getPharmacyId())
                 .orElseThrow(() -> new ResourceNotFoundException("Pharmacy not found"));
 
-        Prescription prescription = PrescriptionDto.mapToEntity(prescriptionDto, patient, pharmacy);
+        Prescription prescription = prescriptionMapper.toEntity(prescriptionDto, patient, pharmacy);
         prescription.setStatus("PENDING_PHARMACY_REVIEW");
-        return PrescriptionDto.mapToDTO(prescriptionRepository.save(prescription));
+        return prescriptionMapper.toDto(prescriptionRepository.save(prescription));
     }
 
     @Override
@@ -88,7 +92,7 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
             prescription.setStatus(prescriptionDto.getStatus() != null ? prescriptionDto.getStatus() : prescription.getStatus());
             prescription.setPaymentConfirmed(prescriptionDto.isPaymentConfirmed());
             prescription.setTotalCost(prescriptionDto.getTotalCost() != null ? prescriptionDto.getTotalCost() : prescription.getTotalCost());
-            return PrescriptionDto.mapToDTO(prescriptionRepository.save(prescription));
+            return prescriptionMapper.toDto(prescriptionRepository.save(prescription));
         }).orElseThrow(() -> new ResourceNotFoundException("Prescription not found"));
     }
 

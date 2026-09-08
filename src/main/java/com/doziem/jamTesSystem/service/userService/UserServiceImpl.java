@@ -2,6 +2,7 @@ package com.doziem.jamTesSystem.service.userService;
 
 import com.doziem.jamTesSystem.dto.UserDto;
 import com.doziem.jamTesSystem.model.User;
+import com.doziem.jamTesSystem.mapper.UserMapper;
 import com.doziem.jamTesSystem.repository.UserRepository;
 import com.doziem.jamTesSystem.service.emailService.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -18,27 +19,7 @@ public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final EmailService emailService;
-
-    @Override
-    public UserDto createUser(UserDto dto) {
-        if (dto == null || dto.getPassword() == null || dto.getPassword().isBlank()) {
-            throw new IllegalArgumentException("Password is required");
-        }
-
-        Optional<User> existingUser = userRepository.findByEmailIgnoreCase(dto.getEmail());
-        if (existingUser.isPresent()) {
-            throw new IllegalArgumentException("Email already registered");
-        }
-
-        User user = UserDto.mapToEntity(dto, dto.getPassword(), passwordEncoder);
-        user.setVerified(false);
-        user.setEmailVerificationToken(UUID.randomUUID().toString());
-        User savedUser = userRepository.save(user);
-
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getName(), savedUser.getEmailVerificationToken());
-        return UserDto.mapToDTO(savedUser);
-    }
+    private final UserMapper userMapper;
 
     @Override
     public List<UserDto> getAllUsers() {
@@ -57,13 +38,13 @@ public class UserServiceImpl implements IUserService {
         return userRepository.findAll().stream()
                 .skip((long) page * size)
                 .limit(size)
-                .map(UserDto::mapToDTO)
+                .map(userMapper::toDto)
                 .toList();
     }
 
     @Override
     public Optional<UserDto> getUserById(String id) {
-        return userRepository.findById(id).map(UserDto::mapToDTO);
+        return userRepository.findById(id).map(userMapper::toDto);
     }
 
     @Override
@@ -77,13 +58,24 @@ public class UserServiceImpl implements IUserService {
             if (password != null && !password.isBlank()) {
                 user.setPassword(passwordEncoder.encode(password));
             }
-            return UserDto.mapToDTO(userRepository.save(user));
+            return userMapper.toDto(userRepository.save(user));
+        });
+    }
+
+    @Override
+    public Optional<UserDto> deactivateUser(String id) {
+        return userRepository.findById(id).map(user -> {
+            user.setActive(false);
+            return userMapper.toDto(userRepository.save(user));
         });
     }
 
     @Override
     public Optional<String> deleteUser(String id) {
         return userRepository.findById(id).map(user -> {
+            if (user.isActive()) {
+                throw new IllegalStateException("Only deactivated accounts can be deleted");
+            }
             userRepository.deleteById(id);
             return "User deleted successfully.";
         });

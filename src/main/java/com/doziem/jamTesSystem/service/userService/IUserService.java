@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IUserService {
-    UserDto createUser(UserDto dto);
 
     List<UserDto> getAllUsers();
 
@@ -15,6 +14,8 @@ public interface IUserService {
     Optional<UserDto> getUserById(String id);
 
     Optional<UserDto> updateUser(String id, UserDto dto, String password);
+
+    Optional<UserDto> deactivateUser(String id);
 
     Optional<String> deleteUser(String id);
 }

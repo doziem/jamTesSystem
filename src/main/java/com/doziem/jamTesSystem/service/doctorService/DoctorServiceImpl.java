@@ -2,6 +2,7 @@ package com.doziem.jamTesSystem.service.doctorService;
 
 import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
+import com.doziem.jamTesSystem.mapper.DoctorMapper;
 import com.doziem.jamTesSystem.model.Doctor;
 import com.doziem.jamTesSystem.model.User;
 import org.springframework.stereotype.Service;
@@ -15,10 +16,12 @@ public class DoctorServiceImpl implements IDoctorService{
 
     private final DoctorRepository doctorRepository;
     private final UserRepository userRepository;
+    private final DoctorMapper doctorMapper;
 
-    public DoctorServiceImpl(DoctorRepository doctorRepository, UserRepository userRepository) {
+    public DoctorServiceImpl(DoctorRepository doctorRepository, UserRepository userRepository, DoctorMapper doctorMapper) {
         this.doctorRepository = doctorRepository;
         this.userRepository = userRepository;
+        this.doctorMapper = doctorMapper;
     }
 
     @Override
@@ -27,8 +30,8 @@ public class DoctorServiceImpl implements IDoctorService{
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Doctor doctor = DoctorDto.mapToEntity(dto, user);
-        return DoctorDto.mapToDTO(doctorRepository.save(doctor));
+        Doctor doctor = doctorMapper.toEntity(dto, user);
+        return doctorMapper.toDto(doctorRepository.save(doctor));
     }
 
     @Override
@@ -48,7 +51,7 @@ public class DoctorServiceImpl implements IDoctorService{
         return doctorRepository.findAll().stream()
                 .skip((long) page * size)
                 .limit(size)
-                .map(DoctorDto::mapToDTO)
+                .map(doctorMapper::toDto)
                 .toList();
     }
 
@@ -57,7 +60,7 @@ public class DoctorServiceImpl implements IDoctorService{
 
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
-        return DoctorDto.mapToDTO(doctor);
+        return doctorMapper.toDto(doctor);
     }
 
     @Override
@@ -72,7 +75,7 @@ public class DoctorServiceImpl implements IDoctorService{
         doctor.setExperience(dto.getExperience());
         doctor.setAvailability(dto.getAvailability());
 
-        return DoctorDto.mapToDTO(doctorRepository.save(doctor));
+        return doctorMapper.toDto(doctorRepository.save(doctor));
     }
 
     @Override

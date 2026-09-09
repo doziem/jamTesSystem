@@ -2,9 +2,14 @@ import { useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import DashboardPage from './pages/DashboardPage'
 import PatientPage from './pages/PatientPage'
+import PatientCreatePage from './pages/PatientCreatePage'
 import DoctorPage from './pages/DoctorPage'
+import DoctorCreatePage from './pages/DoctorCreatePage'
 import PharmacyPage from './pages/PharmacyPage'
+import PharmacyCreatePage from './pages/PharmacyCreatePage'
 import BillingPage from './pages/BillingPage'
+import BillingCreatePage from './pages/BillingCreatePage'
+import LabReportCreatePage from './pages/LabReportCreatePage'
 import RegisterPage from './pages/RegisterPage'
 import { API_BASE, STORAGE_KEY } from './lib/api'
 
@@ -130,6 +135,7 @@ function AppLayout({ user, onLogout, children }) {
             <NavLink to="/doctors" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Doctors</NavLink>
             <NavLink to="/pharmacies" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Pharmacies</NavLink>
             <NavLink to="/billing" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Billing</NavLink>
+            <NavLink to="/lab-reports" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Lab reports</NavLink>
           </nav>
 
           <button
@@ -256,9 +262,14 @@ function App() {
       <Route path="/register" element={token ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleRegister} loading={loading} error={error} />} />
       <Route path="/" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DashboardPage /></AppLayout></ProtectedRoute>} />
       <Route path="/patients" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/patients/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/doctors" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/doctors/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/pharmacies" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PharmacyPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/pharmacies/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PharmacyCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/billing" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><BillingPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/billing/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><BillingCreatePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/lab-reports" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
     </Routes>
   )

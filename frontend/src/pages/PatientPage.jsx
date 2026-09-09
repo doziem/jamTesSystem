@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import DetailModal from '../components/DetailModal'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
 
@@ -70,6 +71,9 @@ function PatientPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Patient operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Patients</h1>
         </div>
+        <Link to="/patients/new" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+          Create patient
+        </Link>
       </div>
 
       {loading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading patients...</div> : null}

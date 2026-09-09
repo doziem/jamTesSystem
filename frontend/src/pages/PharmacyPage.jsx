@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
 
 function PharmacyPage() {
@@ -142,6 +143,9 @@ function PharmacyPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Pharmacy operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Pharmacies</h1>
         </div>
+        <Link to="/pharmacies/new" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+          Create pharmacy
+        </Link>
       </div>
 
       {loading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading pharmacies...</div> : null}

@@ -17,7 +17,6 @@ public class Billing {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
     private String id;
 
     @ManyToOne

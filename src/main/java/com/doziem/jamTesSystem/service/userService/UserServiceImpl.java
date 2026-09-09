@@ -114,7 +114,7 @@ public class UserServiceImpl implements IUserService {
         }
 
         return userRepository.findByEmailIgnoreCase(userDetails.getUsername())
-                .map(user -> user.getId().equals(id))
+                .map(user -> user.getId() != null && user.getId().equals(id))
                 .orElse(false);
     }
 }

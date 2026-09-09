@@ -36,35 +36,30 @@ function DashboardPage() {
   }, [])
 
   return (
-    <div className="page-panel">
-      <div className="page-head">
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="eyebrow">Overview</div>
-          <h1>Hospital dashboard</h1>
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Overview</div>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Hospital dashboard</h1>
         </div>
       </div>
 
-      {loading ? <div className="status info">Loading dashboard...</div> : null}
-      {error ? <div className="status error">{error}</div> : null}
+      {loading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading dashboard...</div> : null}
+      {error ? <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
 
       {!loading && !error ? (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span>Patients</span>
-            <strong>{summary.patients.length}</strong>
-          </div>
-          <div className="stat-card">
-            <span>Doctors</span>
-            <strong>{summary.doctors.length}</strong>
-          </div>
-          <div className="stat-card">
-            <span>Pharmacies</span>
-            <strong>{summary.pharmacies.length}</strong>
-          </div>
-          <div className="stat-card">
-            <span>Billing entries</span>
-            <strong>{summary.billings.length}</strong>
-          </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            ['Patients', summary.patients.length],
+            ['Doctors', summary.doctors.length],
+            ['Pharmacies', summary.pharmacies.length],
+            ['Billing entries', summary.billings.length],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <span className="text-sm text-slate-600">{label}</span>
+              <strong className="mt-2 block text-3xl font-bold text-slate-900">{value}</strong>
+            </div>
+          ))}
         </div>
       ) : null}
     </div>

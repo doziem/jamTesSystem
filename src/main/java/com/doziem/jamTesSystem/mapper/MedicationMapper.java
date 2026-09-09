@@ -9,7 +9,7 @@ public class MedicationMapper {
 
     public MedicationDto toDto(Medication medication) {
         return MedicationDto.builder()
-                .id(medication.getId())
+                .id(medication.getId() != null ? medication.getId().toString() : null)
                 .name(medication.getName())
                 .category(medication.getCategory())
                 .unitPrice(medication.getUnitPrice())

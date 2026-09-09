@@ -18,12 +18,15 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@SqlResultSetMapping(
+        name = "PharmacyIdStringMapping",
+        columns = @ColumnResult(name = "id", type = String.class)
+)
 @Table(name = "pharmacies")
 public class Pharmacy {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
     private String id;
 
     @Column(nullable = false)

@@ -17,7 +17,9 @@ public class PharmacyMapper {
     }
 
     public PharmacyDto toDto(Pharmacy pharmacy) {
-        String parentId = pharmacy.getMainPharmacyRef() != null ? pharmacy.getMainPharmacyRef().getId() : null;
+        String parentId = pharmacy.getMainPharmacyRef() != null && pharmacy.getMainPharmacyRef().getId() != null
+                ? pharmacy.getMainPharmacyRef().getId()
+                : null;
         return PharmacyDto.builder()
                 .id(pharmacy.getId())
                 .name(pharmacy.getName())

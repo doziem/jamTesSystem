@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 public class UserMapper {
     public UserDto toDto(User user) {
         return UserDto.builder()
-                .id(user.getId())
+                .id(user.getId() != null ? user.getId().toString() : null)
                 .name(user.getName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
@@ -22,6 +22,7 @@ public class UserMapper {
 
     public User toEntity(UserDto dto, String password, BCryptPasswordEncoder passwordEncoder) {
         return User.builder()
+                .id(dto.getId())
                 .name(dto.getName())
                 .email(dto.getEmail())
                 .phone(dto.getPhone())

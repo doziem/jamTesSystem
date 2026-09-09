@@ -68,7 +68,6 @@ public class BillingServiceImpl implements IBillingService{
 
     @Override
     public List<BillingDto> getBillingsByPatientId(@PathVariable String patientId) {
-
         List<Billing> billings = billingRepository.findByPatientId(patientId);
 
         if (billings.isEmpty()) {

@@ -12,6 +12,12 @@ ALTER TABLE pharmacies
     ALTER COLUMN id TYPE uuid USING id::uuid,
     ALTER COLUMN main_pharmacy_id TYPE uuid USING main_pharmacy_id::uuid;
 
+ALTER TABLE pharmacies
+    ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+ALTER TABLE pharmacies
+    ALTER COLUMN id SET NOT NULL;
+
 ALTER TABLE medications
     ALTER COLUMN id TYPE uuid USING id::uuid,
     ALTER COLUMN unit_price SET DEFAULT 0;

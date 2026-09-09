@@ -1,33 +1,43 @@
-:root {
-  font-family: Inter, 'Segoe UI', sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #0f172a;
-  background: #f8fafc;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-* {
-  box-sizing: border-box;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
-}
+@layer base {
+  :root {
+    font-family: Inter, 'Segoe UI', sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    color: #0f172a;
+    background: #f8fafc;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-body {
-  margin: 0;
-  min-width: 320px;
-}
+  * {
+    box-sizing: border-box;
+  }
 
-button,
-input {
-  font: inherit;
-}
+  html {
+    scroll-behavior: smooth;
+  }
 
-#root {
-  min-height: 100vh;
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: #f8fafc;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
 }

@@ -185,14 +185,14 @@ public class PharmacyServiceImpl implements IPharmacyService {
         Medication medication = medicationRepository.findById(medicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
 
-        PharmacyInventory mainStock = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(mainPharmacy.getId(), medicationId)
+        PharmacyInventory mainStock = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(mainPharmacy.getId().toString(), medicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Medication not available in main pharmacy"));
 
         if (mainStock.getQuantityInStock() < quantity) {
             throw new UserNotAllowedException("Main pharmacy does not have enough stock to transfer");
         }
 
-        PharmacyInventory departmentStock = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(departmentPharmacyId, medicationId)
+        PharmacyInventory departmentStock = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(departmentPharmacy.getId().toString(), medicationId)
                 .orElseGet(() -> {
                     PharmacyInventory stock = new PharmacyInventory();
                     stock.setPharmacy(departmentPharmacy);
@@ -222,14 +222,15 @@ public class PharmacyServiceImpl implements IPharmacyService {
         Pharmacy pharmacy = pharmacyRepository.findById(pharmacyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pharmacy not found"));
 
-        if (prescription.getPharmacy() != null && !prescription.getPharmacy().getId().equals(pharmacyId)) {
+        if (prescription.getPharmacy() != null && prescription.getPharmacy().getId() != null
+                && !prescription.getPharmacy().getId().toString().equals(pharmacyId)) {
             throw new UserNotAllowedException("This prescription belongs to another pharmacy");
         }
 
         Medication medication = medicationRepository.findByNameIgnoreCase(prescription.getMedicationName())
                 .orElseThrow(() -> new ResourceNotFoundException("Medication not found for prescription"));
 
-        PharmacyInventory inventory = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(pharmacyId, medication.getId())
+        PharmacyInventory inventory = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(pharmacy.getId().toString(), medication.getId().toString())
                 .orElseThrow(() -> new ResourceNotFoundException("Medication unavailable in selected pharmacy"));
 
         if (inventory.getQuantityInStock() < prescription.getQuantity()) {
@@ -280,7 +281,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
 
         return pharmacyRepository.findAll().stream()
                 .map(pharmacy -> {
-                    PharmacyInventory inventory = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(pharmacy.getId(), medicationId)
+                    PharmacyInventory inventory = pharmacyInventoryRepository.findByPharmacyIdAndMedicationId(pharmacy.getId().toString(), medicationId)
                             .orElse(null);
 
                     int quantityInStock = inventory != null ? inventory.getQuantityInStock() : 0;
@@ -319,12 +320,12 @@ public class PharmacyServiceImpl implements IPharmacyService {
                     }
 
                     return PharmacyRecommendationDto.builder()
-                            .pharmacyId(pharmacy.getId())
+                            .pharmacyId(pharmacy.getId().toString())
                             .pharmacyName(pharmacy.getName())
                             .department(pharmacy.getDepartment())
                             .mainPharmacy(pharmacy.isMainPharmacy())
-                            .mainPharmacyId(pharmacy.getMainPharmacyRef() != null ? pharmacy.getMainPharmacyRef().getId() : null)
-                            .medicationId(medication.getId())
+                            .mainPharmacyId(pharmacy.getMainPharmacyRef() != null && pharmacy.getMainPharmacyRef().getId() != null ? pharmacy.getMainPharmacyRef().getId().toString() : null)
+                            .medicationId(medication.getId().toString())
                             .medicationName(medication.getName())
                             .quantityInStock(quantityInStock)
                             .reorderLevel(reorderLevel)
@@ -348,7 +349,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
     public List<PharmacyDepartmentPerformanceDto> getDepartmentPerformanceDashboard() {
         return pharmacyRepository.findAll().stream()
                 .map(pharmacy -> {
-                    List<PharmacyInventory> inventoryList = pharmacyInventoryRepository.findByPharmacyId(pharmacy.getId());
+                    List<PharmacyInventory> inventoryList = pharmacyInventoryRepository.findByPharmacyId(pharmacy.getId().toString());
                     int totalInventoryItems = inventoryList.size();
                     int lowStockItems = 0;
                     int outOfStockItems = 0;
@@ -385,7 +386,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
                     }
 
                     return PharmacyDepartmentPerformanceDto.builder()
-                            .pharmacyId(pharmacy.getId())
+                            .pharmacyId(pharmacy.getId().toString())
                             .pharmacyName(pharmacy.getName())
                             .department(pharmacy.getDepartment())
                             .mainPharmacy(pharmacy.isMainPharmacy())
@@ -410,7 +411,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
     @Override
     public List<PharmacyMedicationLevelDto> getMedicationLevelByDepartment() {
         return pharmacyRepository.findAll().stream()
-                .flatMap(pharmacy -> pharmacyInventoryRepository.findByPharmacyId(pharmacy.getId()).stream()
+                .flatMap(pharmacy -> pharmacyInventoryRepository.findByPharmacyId(pharmacy.getId().toString()).stream()
                         .map(inventory -> buildMedicationLevel(pharmacy, inventory)))
                 .toList();
     }
@@ -446,10 +447,10 @@ public class PharmacyServiceImpl implements IPharmacyService {
         }
 
         return PharmacyMedicationLevelDto.builder()
-                .pharmacyId(pharmacy.getId())
+                .pharmacyId(pharmacy.getId().toString())
                 .pharmacyName(pharmacy.getName())
                 .department(pharmacy.getDepartment())
-                .medicationId(medication.getId())
+                .medicationId(medication.getId().toString())
                 .medicationName(medication.getName())
                 .quantityInStock(quantity)
                 .reorderLevel(inventory.getReorderLevel())

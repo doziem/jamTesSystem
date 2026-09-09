@@ -23,7 +23,6 @@ public class PharmacyInventory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)

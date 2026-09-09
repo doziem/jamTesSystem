@@ -99,7 +99,7 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
             throw new UserNotAllowedException("Only doctors can prescribe medication");
         }
 
-        if (authentication != null && isCurrentDoctor(authentication, doctor.getId())) {
+        if (authentication != null && isCurrentDoctor(authentication, doctor.getId() != null ? doctor.getId().toString() : null)) {
             throw new UserNotAllowedException("You are not allowed to prescribe for this doctor account");
         }
 
@@ -113,7 +113,7 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Pharmacy not found"));
 
         Prescription prescription = prescriptionMapper.toEntity(prescriptionDto, patient, pharmacy);
-        prescription.setPrescribedBy(doctor.getId());
+        prescription.setPrescribedBy(doctor.getId() != null ? doctor.getId().toString() : null);
         prescription.setMedicationName(medication.getName());
         prescription.setStatus("PENDING_PHARMACY_REVIEW");
         return prescriptionMapper.toDto(prescriptionRepository.save(prescription));
@@ -128,7 +128,7 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
         }
 
         return userRepository.findByEmailIgnoreCase(userDetails.getUsername())
-                .map(user -> user.getId().equals(doctorId) || user.getRole() == Role.ADMIN)
+                .map(user -> user.getId() != null && user.getId().toString().equals(doctorId) || user.getRole() == Role.ADMIN)
                 .orElse(false);
     }
 

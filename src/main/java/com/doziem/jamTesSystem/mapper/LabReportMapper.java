@@ -26,15 +26,15 @@ public class LabReportMapper {
             throw new IllegalStateException("Lab request and requesting doctor must be present for lab report mapping");
         }
         return LabReportDto.builder()
-                .id(labReport.getId())
-                .patientId(labReport.getPatient() != null ? labReport.getPatient().getId() : null)
-                .requestedBy(labReport.getLabRequest().getRequestedBy().getId())
+                .id(labReport.getId() != null ? labReport.getId().toString() : null)
+                .patientId(labReport.getPatient() != null && labReport.getPatient().getId() != null ? labReport.getPatient().getId().toString() : null)
+                .requestedBy(labReport.getLabRequest().getRequestedBy().getId() != null ? labReport.getLabRequest().getRequestedBy().getId().toString() : null)
                 .testName(labReport.getTestName())
                 .result(labReport.getResult())
                 .reportDate(labReport.getReportDate())
                 .requestDate(labReport.getRequestDate())
                 .conductedBy(labReport.getConductedBy())
-                .labRequestId(labReport.getLabRequest().getId())
+                .labRequestId(labReport.getLabRequest().getId() != null ? labReport.getLabRequest().getId().toString() : null)
                 .build();
     }
 }

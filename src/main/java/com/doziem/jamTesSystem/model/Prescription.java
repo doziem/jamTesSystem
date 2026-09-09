@@ -16,7 +16,6 @@ import java.util.UUID;
 public class Prescription {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
     private String id;
 
     @ManyToOne

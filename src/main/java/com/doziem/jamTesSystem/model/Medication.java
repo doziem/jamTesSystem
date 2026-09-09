@@ -21,7 +21,6 @@ public class Medication {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
     private String id;
 
     @Column(nullable = false, unique = true)

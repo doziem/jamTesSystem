@@ -117,11 +117,11 @@ public class DoctorServiceImpl implements IDoctorService{
         List<LabReport> labReports = labReportRepository.findByLabRequestRequestedById(doctorId);
 
         return DoctorDashboardDto.builder()
-                .doctorId(doctor.getId())
+                .doctorId(doctor.getId() != null ? doctor.getId().toString() : null)
                 .doctorName(doctor.getFirstName() + " " + doctor.getLastName())
                 .specialization(doctor.getSpecialization())
                 .totalPatients((int) prescriptions.stream()
-                        .map(prescription -> prescription.getPatient() != null ? prescription.getPatient().getId() : null)
+                        .map(prescription -> prescription.getPatient() != null && prescription.getPatient().getId() != null ? prescription.getPatient().getId().toString() : null)
                         .filter(Objects::nonNull)
                         .distinct()
                         .count())

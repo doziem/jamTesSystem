@@ -20,7 +20,6 @@ public class Doctor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
     private String id;
 
     private String firstName;

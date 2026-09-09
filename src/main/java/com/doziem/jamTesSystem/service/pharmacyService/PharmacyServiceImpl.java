@@ -411,40 +411,52 @@ public class PharmacyServiceImpl implements IPharmacyService {
     public List<PharmacyMedicationLevelDto> getMedicationLevelByDepartment() {
         return pharmacyRepository.findAll().stream()
                 .flatMap(pharmacy -> pharmacyInventoryRepository.findByPharmacyId(pharmacy.getId()).stream()
-                        .map(inventory -> {
-                            Medication medication = inventory.getMedication();
-                            int quantity = inventory.getQuantityInStock();
-                            String warningLevel = "NORMAL";
-                            String warningMessage = "Sufficient stock available.";
-
-                            if (quantity <= 1) {
-                                warningLevel = "LEVEL_1";
-                                warningMessage = "Critical: only 1 unit left. Immediate restock required.";
-                                emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
-                            } else if (quantity <= 5) {
-                                warningLevel = "LEVEL_5";
-                                warningMessage = "Urgent: stock is at 5 units or below. Reorder soon.";
-                                emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
-                            } else if (quantity <= 10) {
-                                warningLevel = "LEVEL_10";
-                                warningMessage = "Warning: stock is at 10 units or below. Prepare reorder.";
-                                emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
-                            }
-
-                            return PharmacyMedicationLevelDto.builder()
-                                    .pharmacyId(pharmacy.getId())
-                                    .pharmacyName(pharmacy.getName())
-                                    .department(pharmacy.getDepartment())
-                                    .medicationId(medication.getId())
-                                    .medicationName(medication.getName())
-                                    .quantityInStock(quantity)
-                                    .reorderLevel(inventory.getReorderLevel())
-                                    .stockLevel(quantity <= 0 ? "OUT_OF_STOCK" : quantity <= 10 ? "LOW" : "AVAILABLE")
-                                    .warningLevel(warningLevel)
-                                    .warningMessage(warningMessage)
-                                    .emailSent(!"NORMAL".equals(warningLevel))
-                                    .build();
-                        }))
+                        .map(inventory -> buildMedicationLevel(pharmacy, inventory)))
                 .toList();
+    }
+
+    @Override
+    public List<PharmacyMedicationLevelDto> getMedicationLevelsByPharmacy(String pharmacyId) {
+        Pharmacy pharmacy = pharmacyRepository.findById(pharmacyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pharmacy not found"));
+
+        return pharmacyInventoryRepository.findByPharmacyId(pharmacyId).stream()
+                .map(inventory -> buildMedicationLevel(pharmacy, inventory))
+                .toList();
+    }
+
+    private PharmacyMedicationLevelDto buildMedicationLevel(Pharmacy pharmacy, PharmacyInventory inventory) {
+        Medication medication = inventory.getMedication();
+        int quantity = inventory.getQuantityInStock();
+        String warningLevel = "NORMAL";
+        String warningMessage = "Sufficient stock available.";
+
+        if (quantity <= 1) {
+            warningLevel = "LEVEL_1";
+            warningMessage = "Critical: only 1 unit left. Immediate restock required.";
+            emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
+        } else if (quantity <= 5) {
+            warningLevel = "LEVEL_5";
+            warningMessage = "Urgent: stock is at 5 units or below. Reorder soon.";
+            emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
+        } else if (quantity <= 10) {
+            warningLevel = "LEVEL_10";
+            warningMessage = "Warning: stock is at 10 units or below. Prepare reorder.";
+            emailService.sendLowStockWarning(pharmacy.getName(), pharmacy.getDepartment().name(), medication.getName(), quantity);
+        }
+
+        return PharmacyMedicationLevelDto.builder()
+                .pharmacyId(pharmacy.getId())
+                .pharmacyName(pharmacy.getName())
+                .department(pharmacy.getDepartment())
+                .medicationId(medication.getId())
+                .medicationName(medication.getName())
+                .quantityInStock(quantity)
+                .reorderLevel(inventory.getReorderLevel())
+                .stockLevel(quantity <= 0 ? "OUT_OF_STOCK" : quantity <= 10 ? "LOW" : "AVAILABLE")
+                .warningLevel(warningLevel)
+                .warningMessage(warningMessage)
+                .emailSent(!"NORMAL".equals(warningLevel))
+                .build();
     }
 }

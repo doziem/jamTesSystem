@@ -11,6 +11,7 @@ import java.util.UUID;
 @Getter
 @Entity
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @Table(name = "patients")
 public class Patient {
@@ -53,8 +54,6 @@ public class Patient {
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
     private List<Billing> billingRecords;
 
-    public Patient() {
-    }
 
     public Patient(String id, String firstName, String lastName, String email, String phone, String gender,
                    LocalDate dateOfBirth, Address address, boolean active,

@@ -97,45 +97,96 @@ function ProtectedRoute({ token, children }) {
 }
 
 function AppLayout({ user, onLogout, children }) {
-  const navClass = 'rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700'
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const navClass =
+    'flex items-center rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700'
   const activeClass = 'bg-blue-100 text-blue-700'
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50 text-slate-900">
-      <header className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl font-bold tracking-tight">JamTes System</div>
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
-            {user?.role || 'USER'}
-          </span>
-        </div>
+    <div className="min-h-screen bg-slate-100 text-slate-900">
+      <div className="flex min-h-screen">
+        {sidebarOpen ? (
+          <button
+            type="button"
+            aria-label="Close menu overlay"
+            className="fixed inset-0 z-20 bg-slate-900/40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
 
-        <nav className="flex flex-wrap gap-2">
-          <NavLink to="/" end className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`}>Overview</NavLink>
-          <NavLink to="/patients" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`}>Patients</NavLink>
-          <NavLink to="/doctors" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`}>Doctors</NavLink>
-          <NavLink to="/pharmacies" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`}>Pharmacies</NavLink>
-          <NavLink to="/billing" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`}>Billing</NavLink>
-        </nav>
-
-        <button
-          type="button"
-          onClick={onLogout}
-          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+        <aside
+          className={`fixed inset-y-0 left-0 z-30 w-72 flex-col border-r border-slate-200 bg-white px-4 py-6 transition-transform duration-200 ease-out lg:static lg:z-auto lg:flex lg:translate-x-0 ${
+            sidebarOpen ? 'flex translate-x-0' : 'flex -translate-x-full'
+          }`}
         >
-          Log out
-        </button>
-      </header>
+          <div className="mb-6 px-2">
+            <h1 className="text-xl font-bold tracking-tight">JamTes System</h1>
+            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">Hospital Portal</p>
+          </div>
 
-      <main className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Authenticated</p>
-          <h2 className="mt-1 text-xl font-bold sm:text-2xl">{user?.name || 'Hospital staff'}</h2>
-          <p className="text-sm text-slate-600">{user?.email || 'No email available'}</p>
+          <nav className="flex flex-1 flex-col gap-1" aria-label="Sidebar navigation">
+            <NavLink to="/" end className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Overview</NavLink>
+            <NavLink to="/patients" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Patients</NavLink>
+            <NavLink to="/doctors" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Doctors</NavLink>
+            <NavLink to="/pharmacies" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Pharmacies</NavLink>
+            <NavLink to="/billing" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Billing</NavLink>
+          </nav>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="mt-6 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            Log out
+          </button>
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label="Open menu"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition hover:bg-slate-100 lg:hidden"
+                    onClick={() => setSidebarOpen(true)}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M4 7h16M4 12h16M4 17h16" />
+                    </svg>
+                  </button>
+                  <div className="text-xl font-bold tracking-tight sm:text-2xl">JamTes System</div>
+                </div>
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500 sm:hidden">Hospital Portal</p>
+              </div>
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
+                  {user?.role || 'USER'}
+                </span>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 lg:hidden"
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
+
+          </header>
+
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Authenticated</p>
+              <h2 className="mt-1 text-xl font-bold sm:text-2xl">{user?.name || 'Hospital staff'}</h2>
+              <p className="text-sm text-slate-600">{user?.email || 'No email available'}</p>
+            </div>
+
+            {children}
+          </main>
         </div>
-
-        {children}
-      </main>
+      </div>
     </div>
   )
 }

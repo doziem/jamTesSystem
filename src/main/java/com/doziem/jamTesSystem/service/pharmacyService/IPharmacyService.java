@@ -21,4 +21,5 @@ public interface IPharmacyService {
     List<PharmacyRecommendationDto> recommendPharmaciesForMedication(String medicationId, int minimumQuantity);
     List<PharmacyDepartmentPerformanceDto> getDepartmentPerformanceDashboard();
     List<PharmacyMedicationLevelDto> getMedicationLevelByDepartment();
+    List<PharmacyMedicationLevelDto> getMedicationLevelsByPharmacy(String pharmacyId);
 }

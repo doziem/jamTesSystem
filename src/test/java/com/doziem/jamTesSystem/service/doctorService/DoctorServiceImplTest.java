@@ -58,18 +58,35 @@ class DoctorServiceImplTest {
 
     @Test
     void createDoctorSavesMappedEntity() {
-        DoctorDto dto = DoctorDto.builder().userId("u-1").firstName("John").lastName("Doe").build();
-        User user = User.builder().id("u-1").build();
-        Doctor doctor = Doctor.builder().id("d-1").firstName("John").lastName("Doe").build();
+        DoctorDto dto = DoctorDto.builder()
+                .userId("u-1")
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+
+        User user = User.builder()
+                .id("u-1").build();
+
+        Doctor doctor = Doctor.builder()
+                .id("d-1")
+                .firstName("John")
+                .lastName("Doe")
+                .build();
 
         when(userRepository.findById("u-1")).thenReturn(Optional.of(user));
         when(doctorMapper.toEntity(dto, user)).thenReturn(doctor);
         when(doctorRepository.save(doctor)).thenReturn(doctor);
-        when(doctorMapper.toDto(doctor)).thenReturn(DoctorDto.builder().id("d-1").firstName("John").lastName("Doe").build());
+        when(doctorMapper.toDto(doctor)).thenReturn(DoctorDto.builder()
+                .id("d-1")
+                .firstName("John")
+                .lastName("Doe")
+                .build());
 
         DoctorDto result = doctorService.createDoctor(dto);
 
         assertEquals("d-1", result.getId());
+        assertEquals("John", result.getFirstName());
+        assertEquals("Doe",result.getLastName());
     }
 
     @Test

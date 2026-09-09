@@ -124,4 +124,15 @@ public class PharmacyController {
         List<PharmacyMedicationLevelDto> medicationLevels = pharmacyService.getMedicationLevelByDepartment();
         return ResponseEntity.ok(new ApiResponse(true, "Medication availability by pharmacy department fetched", medicationLevels));
     }
+
+    @GetMapping("/{pharmacyId}/medications")
+    public ResponseEntity<ApiResponse> getMedicationLevelsByPharmacy(@PathVariable String pharmacyId) {
+        try {
+            List<PharmacyMedicationLevelDto> medicationLevels = pharmacyService.getMedicationLevelsByPharmacy(pharmacyId);
+            return ResponseEntity.ok(new ApiResponse(true, "Medication inventory for pharmacy fetched", medicationLevels));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse(false, e.getMessage()));
+        }
+    }
 }

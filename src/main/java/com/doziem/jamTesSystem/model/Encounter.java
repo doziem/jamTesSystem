@@ -35,8 +35,20 @@ public class Encounter {
 
     private String assignedDoctorId;
 
+    private String assignedDoctorName;
+
     @Column(length = 1000)
     private String triageNotes;
+
+    private LocalDateTime admittedAt;
+
+    private LocalDateTime dischargedAt;
+
+    @Column(length = 1000)
+    private String admissionNotes;
+
+    @Column(length = 1000)
+    private String dischargeNotes;
 
     @PrePersist
     public void generateId() {

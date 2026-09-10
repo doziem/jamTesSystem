@@ -44,6 +44,12 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse(false, message.isBlank() ? "Validation failed" : message));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(false, ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse> handleUnexpected(Exception ex) {
         log.error("Unhandled backend error", ex);

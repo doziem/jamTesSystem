@@ -1,15 +1,22 @@
 package com.doziem.jamTesSystem.service.patientService;
 
 import com.doziem.jamTesSystem.dto.EncounterDto;
+import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
 import com.doziem.jamTesSystem.exceptions.InvalidResourceException;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.mapper.EncounterMapper;
 import com.doziem.jamTesSystem.mapper.PatientMapper;
+import com.doziem.jamTesSystem.mapper.DoctorMapper;
+import com.doziem.jamTesSystem.model.Doctor;
 import com.doziem.jamTesSystem.model.Encounter;
 import com.doziem.jamTesSystem.model.Patient;
+import com.doziem.jamTesSystem.repository.BillingRepository;
+import com.doziem.jamTesSystem.repository.DoctorRepository;
 import com.doziem.jamTesSystem.repository.EncounterRepository;
+import com.doziem.jamTesSystem.repository.LabReportRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
+import com.doziem.jamTesSystem.repository.PrescriptionRepository;
 import com.doziem.jamTesSystem.request.EncounterStatusRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +49,21 @@ class PatienceServiceTest {
 
     @Mock
     private EncounterMapper encounterMapper;
+
+    @Mock
+    private DoctorRepository doctorRepository;
+
+    @Mock
+    private PrescriptionRepository prescriptionRepository;
+
+    @Mock
+    private LabReportRepository labReportRepository;
+
+    @Mock
+    private BillingRepository billingRepository;
+
+    @Mock
+    private DoctorMapper doctorMapper;
 
     @InjectMocks
     private PatienceService patienceService;
@@ -84,8 +106,17 @@ class PatienceServiceTest {
         patient.setFirstName("Jane");
         patient.setLastName("Doe");
 
+        Encounter encounter = new Encounter();
+        encounter.setId("e-1");
+        encounter.setPatient(patient);
+        encounter.setStatus("ARRIVED");
+
+        EncounterDto encounterDto = EncounterDto.builder().id("e-1").patientId("p-1").status("ARRIVED").build();
+
         when(patientRepository.findById("p-1")).thenReturn(Optional.of(patient));
         when(patientMapper.toDto(patient)).thenReturn(buildPatientDto("p-1", "Jane", "Doe"));
+        when(encounterRepository.findByPatientIdOrderByArrivalTimeDesc("p-1")).thenReturn(List.of(encounter));
+        when(encounterMapper.toDto(encounter)).thenReturn(encounterDto);
 
         PatientDto result = patienceService.getPatientById("p-1");
 
@@ -199,11 +230,19 @@ class PatienceServiceTest {
 
         EncounterDto dto = EncounterDto.builder().id("e-1").patientId("p-1").status("TRIAGED").build();
 
+        Doctor doctor = Doctor.builder().id("d-1").firstName("Jane").lastName("Doe").build();
+        when(doctorRepository.findById("d-1")).thenReturn(Optional.of(doctor));
         when(encounterRepository.findById("e-1")).thenReturn(Optional.of(encounter));
         when(encounterRepository.save(any(Encounter.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(encounterMapper.toDto(any(Encounter.class))).thenReturn(dto);
 
-        EncounterDto result = patienceService.updateEncounterStatus("e-1", new EncounterStatusRequest("TRIAGED"));
+        EncounterStatusRequest request = new EncounterStatusRequest();
+        request.setStatus("TRIAGED");
+        request.setAssignedDoctorId("d-1");
+        request.setDepartmentName("Emergency");
+        request.setTriageNotes("Vitals captured");
+
+        EncounterDto result = patienceService.updateEncounterStatus("e-1", request);
 
         assertEquals("TRIAGED", result.getStatus());
     }
@@ -220,8 +259,11 @@ class PatienceServiceTest {
 
         when(encounterRepository.findById("e-1")).thenReturn(Optional.of(encounter));
 
+        EncounterStatusRequest request = new EncounterStatusRequest();
+        request.setStatus("ADMITTED");
+
         assertThrows(InvalidResourceException.class,
-                () -> patienceService.updateEncounterStatus("e-1", new EncounterStatusRequest("ADMITTED")));
+                () -> patienceService.updateEncounterStatus("e-1", request));
     }
 
     @Test
@@ -229,6 +271,20 @@ class PatienceServiceTest {
         when(patientRepository.findById("missing")).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> patienceService.getPatientById("missing"));
+    }
+
+    @Test
+    void getAssignableDoctorsReturnsMappedDoctors() {
+        Doctor doctor = Doctor.builder().id("d-1").firstName("Jane").lastName("Doe").build();
+        DoctorDto doctorDto = DoctorDto.builder().id("d-1").fullName("Jane Doe").build();
+
+        when(doctorRepository.findAll()).thenReturn(List.of(doctor));
+        when(doctorMapper.toDto(doctor)).thenReturn(doctorDto);
+
+        List<DoctorDto> result = patienceService.getAssignableDoctors();
+
+        assertEquals(1, result.size());
+        assertEquals("d-1", result.get(0).getId());
     }
 
     private PatientDto buildPatientDto(String id, String firstName, String lastName) {

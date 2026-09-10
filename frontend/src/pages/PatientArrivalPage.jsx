@@ -167,7 +167,7 @@ function PatientArrivalPage() {
               Date of birth
               <input type="date" name="dob" value={search.dob} onChange={handleSearchChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" />
             </label>
-            <button type="submit" disabled={loading} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70">
+            <button type="submit" disabled={loading} className="rounded-xl btn-brand px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70">
               {loading ? 'Searching...' : 'Search patient'}
             </button>
           </form>

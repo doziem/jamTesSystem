@@ -90,7 +90,7 @@ function PatientDetailPage() {
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">MRN: {patient.mrn || 'N/A'}</span>
-            <Link to={`/patients/${id}/edit`} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+            <Link to={`/patients/${id}/edit`} className="rounded-xl btn-brand px-4 py-2 text-sm font-semibold transition">
               Edit patient
             </Link>
           </div>

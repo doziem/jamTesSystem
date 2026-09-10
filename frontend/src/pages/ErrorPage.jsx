@@ -12,7 +12,7 @@ function ErrorPage() {
           <h1 className="mt-4 text-2xl font-bold tracking-tight">We hit a problem</h1>
           <p className="mt-2 text-sm text-slate-600">{message}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Link to="/" className="rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+            <Link to="/" className="rounded-lg btn-brand px-3.5 py-2 text-sm font-semibold">
               Go to dashboard
             </Link>
             <Link to="/login" className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">

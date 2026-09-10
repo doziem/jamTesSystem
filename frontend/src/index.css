@@ -11,6 +11,10 @@
     font-weight: 400;
     color: #0f172a;
     background: #f8fafc;
+    --brand-blue: #1877f2;
+    --brand-blue-dark: #166fe5;
+    --brand-blue-soft: #e7f3ff;
+    --brand-blue-text: #0f5cc0;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -39,5 +43,21 @@
 
   #root {
     min-height: 100vh;
+  }
+}
+
+@layer components {
+  .btn-brand {
+    background-color: var(--brand-blue);
+    color: #fff;
+  }
+
+  .btn-brand:hover {
+    background-color: var(--brand-blue-dark);
+  }
+
+  .btn-brand-soft {
+    background-color: var(--brand-blue-soft);
+    color: var(--brand-blue-text);
   }
 }

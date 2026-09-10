@@ -36,7 +36,7 @@ function BillingPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Billing operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Billing</h1>
         </div>
-        <Link to="/billing/new" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+        <Link to="/billing/new" className="rounded-xl btn-brand px-4 py-2 text-sm font-semibold transition">
           Create billing
         </Link>
       </div>

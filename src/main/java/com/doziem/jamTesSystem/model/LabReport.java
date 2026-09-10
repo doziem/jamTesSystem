@@ -21,16 +21,14 @@ import java.util.UUID;
 public class LabReport {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
     private String id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false, columnDefinition = "uuid")
+    @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lab_request_id", nullable = false, columnDefinition = "uuid")
+    @JoinColumn(name = "lab_request_id", nullable = false)
     private LabRequest labRequest;
 
     @Column(nullable = false)

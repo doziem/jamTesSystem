@@ -29,6 +29,27 @@ export async function readJson(url, options = {}) {
   return payload
 }
 
+export async function writeJson(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+      ...getAuthHeaders(),
+    },
+  })
+
+  const contentType = response.headers.get('content-type') || ''
+  const payload = contentType.includes('application/json') ? await response.json() : await response.text()
+
+  if (!response.ok) {
+    const message = typeof payload === 'string' ? payload : payload?.message || 'Request failed'
+    throw new Error(message)
+  }
+
+  return payload
+}
+
 export function normalizeList(payload) {
   if (Array.isArray(payload)) {
     if (payload.length === 1 && payload[0] && typeof payload[0] === 'object') {

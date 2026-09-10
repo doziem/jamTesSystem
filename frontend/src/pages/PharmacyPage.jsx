@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function PharmacyPage() {
   const [pharmacies, setPharmacies] = useState([])
@@ -13,6 +15,7 @@ function PharmacyPage() {
   const [actionLoadingId, setActionLoadingId] = useState('')
   const [error, setError] = useState('')
   const [inventoryError, setInventoryError] = useState('')
+  const showError = useErrorRedirect()
 
   useEffect(() => {
     const loadPharmacies = async () => {
@@ -29,7 +32,9 @@ function PharmacyPage() {
           setSelectedPharmacyId(firstPharmacyId)
         }
       } catch (err) {
-        setError(err.message || 'Unable to load pharmacy records.')
+        const message = err.message || 'Unable to load pharmacy records.'
+        setError(message)
+        showError(message)
       } finally {
         setLoading(false)
       }
@@ -53,7 +58,9 @@ function PharmacyPage() {
         const inventory = normalizeList(payload)
         setMedications(Array.isArray(inventory) ? inventory : [])
       } catch (err) {
-        setInventoryError(err.message || 'Unable to load medication inventory.')
+        const message = err.message || 'Unable to load medication inventory.'
+        setInventoryError(message)
+        showError(message)
         setMedications([])
       } finally {
         setInventoryLoading(false)
@@ -129,7 +136,9 @@ function PharmacyPage() {
       const refreshed = await readJson(`${API_BASE}/api/pharmacies/${pharmacyId}/medications`)
       setMedications(normalizeList(refreshed))
     } catch (err) {
-      setInventoryError(err.message || 'Unable to create reorder request.')
+      const message = err.message || 'Unable to create reorder request.'
+      setInventoryError(message)
+      showError(message)
     } finally {
       setActionLoadingId('')
     }
@@ -142,6 +151,9 @@ function PharmacyPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Pharmacy operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Pharmacies</h1>
         </div>
+        <Link to="/pharmacies/new" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+          Create pharmacy
+        </Link>
       </div>
 
       {loading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading pharmacies...</div> : null}

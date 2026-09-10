@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import DetailModal from '../components/DetailModal'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function PatientPage() {
   const [patients, setPatients] = useState([])
@@ -8,6 +10,7 @@ function PatientPage() {
   const [error, setError] = useState('')
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const showError = useErrorRedirect()
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -18,7 +21,9 @@ function PatientPage() {
         const payload = await readJson(`${API_BASE}/api/patients/all?page=0&size=20`)
         setPatients(normalizeList(payload))
       } catch (err) {
-        setError(err.message || 'Unable to load patient records.')
+        const message = err.message || 'Unable to load patient records.'
+        setError(message)
+        showError(message)
       } finally {
         setLoading(false)
       }
@@ -41,10 +46,12 @@ function PatientPage() {
       const detail = payload?.data || payload
       setSelectedPatient(detail)
     } catch (err) {
+      const message = err.message || 'Unable to fetch patient details.'
       setSelectedPatient({
         name: patient.name || patient.fullName || 'Patient',
-        error: err.message || 'Unable to fetch patient details.',
+        error: message,
       })
+      showError(message)
     } finally {
       setDetailLoading(false)
     }
@@ -70,6 +77,9 @@ function PatientPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Patient operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Patients</h1>
         </div>
+        <Link to="/patients/new" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+          Create patient
+        </Link>
       </div>
 
       {loading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading patients...</div> : null}
@@ -81,17 +91,28 @@ function PatientPage() {
             const name = patient.name || patient.fullName || [patient.firstName, patient.lastName].filter(Boolean).join(' ') || `Patient ${index + 1}`
             const email = patient.email || patient.emailAddress || 'N/A'
             const phone = patient.phone || patient.phoneNumber || 'N/A'
+            const patientId = patient.id || patient.patientId
+            const mrn = patient.mrn || 'N/A'
 
             return (
-              <div key={patient.id || patient.patientId || `${name}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div key={patientId || `${name}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <strong className="block text-base font-semibold text-slate-900">{name}</strong>
+                    <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.12em] text-blue-600">MRN: {mrn}</span>
                     <span className="mt-1 block text-sm text-slate-600">{email}</span>
                   </div>
-                  <button type="button" className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white" onClick={() => openPatientDetails(patient)}>
-                    View details
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link to={`/patients/${patientId}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                      View
+                    </Link>
+                    <Link to={`/patients/${patientId}/edit`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                      Edit
+                    </Link>
+                    <button type="button" className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white" onClick={() => openPatientDetails(patient)}>
+                      Quick view
+                    </button>
+                  </div>
                 </div>
                 <small className="mt-3 block text-sm text-slate-500">{phone}</small>
               </div>

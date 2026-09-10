@@ -22,7 +22,6 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @NotBlank(message = "Name is required")

@@ -1,58 +1,199 @@
 package com.doziem.jamTesSystem.service.patientService;
 
+import com.doziem.jamTesSystem.dto.EncounterDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
+import com.doziem.jamTesSystem.exceptions.InvalidResourceException;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.mapper.BillingMapper;
+import com.doziem.jamTesSystem.mapper.EncounterMapper;
 import com.doziem.jamTesSystem.mapper.LabReportMapper;
 import com.doziem.jamTesSystem.mapper.PatientMapper;
 import com.doziem.jamTesSystem.mapper.PrescriptionMapper;
+import com.doziem.jamTesSystem.model.Encounter;
 import com.doziem.jamTesSystem.model.Patient;
+import com.doziem.jamTesSystem.repository.EncounterRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
+import com.doziem.jamTesSystem.request.EncounterStatusRequest;
+import com.doziem.jamTesSystem.request.PatientArrivalRequest;
+import com.doziem.jamTesSystem.response.PatientArrivalResponse;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.Year;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 
 @Service
+@AllArgsConstructor
 public class PatienceService implements IPatientService{
     private final PatientRepository patientRepository;
+    private final EncounterRepository encounterRepository;
     private PatientMapper patientMapper = new PatientMapper(
             new BillingMapper(),
             new LabReportMapper(),
-            new PrescriptionMapper());
-
-    public PatienceService(PatientRepository patientRepository) {
-        this.patientRepository = patientRepository;
-    }
-
-    @Autowired
-    public PatienceService(PatientRepository patientRepository, PatientMapper patientMapper) {
-        this.patientRepository = patientRepository;
-        this.patientMapper = patientMapper != null ? patientMapper : this.patientMapper;
-    }
+            new PrescriptionMapper(),
+            new EncounterMapper());
+    private EncounterMapper encounterMapper = new EncounterMapper();
 
     @Override
-    // Create a new patient
     public PatientDto createPatient(PatientDto patientDto) {
         Patient patient = patientMapper.toEntity(patientDto, new Patient());
+        if (patient.getMrn() == null || patient.getMrn().isBlank()) {
+            patient.setMrn(generateUniqueMrn());
+        }
         return patientMapper.toDto(patientRepository.save(patient));
     }
 
-    // Retrieve a patient by ID
     @Override
+    @Transactional(readOnly = true)
     public PatientDto getPatientById(String id) {
         return patientRepository.findById(id)
                 .map(patientMapper::toDto)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
     }
 
-
-    // Retrieve all patients
     @Override
+    @Transactional(readOnly = true)
+    public PatientDto getPatientByMrn(String mrn) {
+        return patientRepository.findByMrn(mrn)
+                .map(patientMapper::toDto)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with MRN: " + mrn));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientDto> searchPatients(String mrn, String phone, String name, String dob) {
+        if (mrn != null && !mrn.isBlank()) {
+            return patientRepository.findByMrn(mrn.trim())
+                   .map(List::of)
+                   .orElse(List.of())
+                   .stream()
+                   .map(patientMapper::toDto)
+                   .collect(Collectors.toList());
+        }
+
+        if (phone != null && !phone.isBlank()) {
+            return patientRepository.findByPhone(phone.trim())
+                   .map(List::of)
+                   .orElse(List.of())
+                   .stream()
+                   .map(patientMapper::toDto)
+                   .collect(Collectors.toList());
+        }
+
+        if (name != null && !name.isBlank() || dob != null && !dob.isBlank()) {
+            String normalizedName = name == null ? "" : name.trim().toLowerCase();
+            LocalDate parsedDob = dob == null || dob.isBlank() ? null : LocalDate.parse(dob);
+            return patientRepository.findAll().stream()
+                   .filter(patient -> {
+                       boolean nameMatches = normalizedName.isBlank() || (
+                               patient.getFirstName() != null && patient.getFirstName().toLowerCase().contains(normalizedName)
+                                       || patient.getLastName() != null && patient.getLastName().toLowerCase().contains(normalizedName));
+                       boolean dobMatches = parsedDob == null || Objects.equals(patient.getDateOfBirth(), parsedDob);
+                       return nameMatches && dobMatches;
+                   })
+                   .map(patientMapper::toDto)
+                   .collect(Collectors.toList());
+        }
+
+        return new ArrayList<>();
+    }
+
+    @Override
+    public PatientArrivalResponse arrivePatient(PatientArrivalRequest request) {
+        if (request == null) {
+            throw new InvalidResourceException("Arrival request is required");
+        }
+
+        Patient patient = null;
+        if (request.getMrn() != null && !request.getMrn().isBlank()) {
+            patient = patientRepository.findByMrn(request.getMrn().trim()).orElse(null);
+        }
+        if (patient == null && request.getPhone() != null && !request.getPhone().isBlank()) {
+            patient = patientRepository.findByPhone(request.getPhone().trim()).orElse(null);
+        }
+
+        if (patient == null) {
+            PatientDto patientDto = new PatientDto();
+            patientDto.setMrn(request.getMrn() != null && !request.getMrn().isBlank() ? request.getMrn().trim() : generateUniqueMrn());
+            patientDto.setFirstName(request.getFirstName());
+            patientDto.setLastName(request.getLastName());
+            patientDto.setEmail(request.getEmail());
+            patientDto.setPhone(request.getPhone());
+            patientDto.setDateOfBirth(request.getDateOfBirth());
+            patientDto.setGender(request.getGender());
+            patientDto.setAddress(request.getAddress());
+            patientDto.setActive(true);
+            patient = patientMapper.toEntity(createPatient(patientDto), new Patient());
+        }
+
+        Encounter encounter = getEncounter(request, patient);
+        Encounter savedEncounter = encounterRepository.save(encounter);
+
+        return PatientArrivalResponse.builder()
+                .patient(patientMapper.toDto(patient))
+                .encounter(encounterMapper.toDto(savedEncounter))
+                .message("Patient checked in successfully.")
+                .build();
+    }
+
+    private static Encounter getEncounter(PatientArrivalRequest request, Patient patient) {
+        String visitType = request.getVisitType() == null || request.getVisitType().isBlank() ? "OPD" : request.getVisitType().trim();
+        Encounter encounter = new Encounter();
+        encounter.setPatient(patient);
+        encounter.setVisitType(visitType);
+        encounter.setStatus("ARRIVED");
+        encounter.setDepartmentName(request.getDepartmentName() == null || request.getDepartmentName().isBlank() ? "Reception" : request.getDepartmentName());
+        encounter.setAssignedDoctorId(request.getAssignedDoctorId());
+        encounter.setTriageNotes(request.getTriageNotes());
+        return encounter;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EncounterDto> getPatientVisitHistory(String patientId) {
+        if (patientId == null || patientId.isBlank()) {
+            throw new InvalidResourceException("Patient id is required");
+        }
+
+        patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
+
+        return encounterRepository.findByPatientIdOrderByArrivalTimeDesc(patientId)
+                .stream()
+                .map(encounterMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public EncounterDto updateEncounterStatus(String encounterId, EncounterStatusRequest request) {
+        if (encounterId == null || encounterId.isBlank()) {
+            throw new InvalidResourceException("Encounter id is required");
+        }
+        if (request == null || request.getStatus() == null || request.getStatus().isBlank()) {
+            throw new InvalidResourceException("Status is required");
+        }
+
+        Encounter encounter = encounterRepository.findById(encounterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Encounter not found"));
+
+        String nextStatus = normalizeEncounterStatus(request.getStatus());
+        validateEncounterStatusTransition(encounter.getStatus(), nextStatus);
+        encounter.setStatus(nextStatus);
+        return encounterMapper.toDto(encounterRepository.save(encounter));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PatientDto> getAllPatients(int page, int size) {
-        //initialize the page and size to default values if they are not provided
         if (page < 0) {
             page = 0;
         }
@@ -67,7 +208,6 @@ public class PatienceService implements IPatientService{
                 .collect(Collectors.toList());
     }
 
-    // Update a patient
     @Override
     public PatientDto updatePatient(String id, PatientDto patientDTO) {
         Patient existingPatient = patientRepository.findById(id)
@@ -77,7 +217,7 @@ public class PatienceService implements IPatientService{
     }
 
     private Patient updateExistingPatient(Patient existingPatient,PatientDto patientDto) {
-
+        existingPatient.setMrn(patientDto.getMrn() != null ? patientDto.getMrn() : existingPatient.getMrn());
         existingPatient.setFirstName(patientDto.getFirstName() != null ? patientDto.getFirstName() : existingPatient.getFirstName());
         existingPatient.setLastName(patientDto.getLastName() != null ? patientDto.getLastName() : existingPatient.getLastName());
         existingPatient.setEmail(patientDto.getEmail() != null ? patientDto.getEmail() : existingPatient.getEmail());
@@ -89,31 +229,6 @@ public class PatienceService implements IPatientService{
         return existingPatient;
     }
 
-//    private StockDto updateExistingStockFrom(Stock existingStock, StockDto request) {
-//
-//        existingStock.setName(request.getName() != null ? request.getName() : existingStock.getName());
-//        existingStock.setBuyPrice(request.getBuyPrice() != null ? request.getBuyPrice() : existingStock.getBuyPrice());
-//        existingStock.setTicker(request.getTicker() != null ? request.getTicker() : existingStock.getTicker());
-//        existingStock.setQuantity(request.getQuantity() != null ? request.getQuantity() : existingStock.getQuantity());
-//        existingStock.setVolume(request.getVolume() != null ? request.getVolume() : existingStock.getVolume());
-//
-//        // Handle portfolio updates
-//        if (request.getPortfolio() != null) {
-//            String portfolioName = request.getPortfolio().getName().trim();
-//            Portfolio portfolio = portfolioRepository.findByName(portfolioName)
-//                    .orElseGet(() -> {
-//                        Portfolio newPortfolio = new Portfolio();
-//                        newPortfolio.setName(portfolioName);
-//                        return portfolioRepository.save(newPortfolio); // Save only when creating a new one
-//                    });
-//            existingStock.setPortfolio(portfolio);
-//        }
-//
-//        Stock updatedStock = stockRepository.save(existingStock);
-//        return StockDto.fromStockEntity(updatedStock);
-//    }
-
-
     @Override
     public void deletePatient(String id) {
       Patient patient=  patientRepository.findById(id)
@@ -121,4 +236,57 @@ public class PatienceService implements IPatientService{
         patientRepository.delete(patient);
 
     }
-}
+
+    private String normalizeEncounterStatus(String rawStatus) {
+        if (rawStatus == null || rawStatus.isBlank()) {
+            throw new InvalidResourceException("Status is required");
+        }
+
+        String normalized = rawStatus.trim().toUpperCase().replace(' ', '_');
+        String compact = normalized.replace('-', '_');
+
+        return switch (compact) {
+            case "ARRIVED", "CHECKED_IN" -> "ARRIVED";
+            case "TRIAGED", "IN_TRIAGE" -> "TRIAGED";
+            case "ADMITTED", "ADMISSION" -> "ADMITTED";
+            case "IN_TREATMENT", "TREATMENT" -> "IN_TREATMENT";
+            case "DISCHARGED", "DISCHARGE" -> "DISCHARGED";
+            default -> throw new InvalidResourceException("Unsupported encounter status: " + rawStatus);
+        };
+    }
+
+    private void validateEncounterStatusTransition(String currentStatus, String nextStatus) {
+        String normalizedCurrent = normalizeEncounterStatus(currentStatus);
+        if (normalizedCurrent.equals(nextStatus)) {
+            return;
+        }
+
+        List<String> workflow = Arrays.asList("ARRIVED", "TRIAGED", "ADMITTED", "IN_TREATMENT", "DISCHARGED");
+        int currentIndex = workflow.indexOf(normalizedCurrent);
+        int nextIndex = workflow.indexOf(nextStatus);
+
+        if (currentIndex == -1 || nextIndex == -1) {
+            throw new InvalidResourceException("Unsupported encounter status transition");
+        }
+
+        if (nextIndex != currentIndex + 1) {
+            throw new InvalidResourceException(
+                    "Encounter status can only move from " + normalizedCurrent + " to "
+                            + (currentIndex + 1 < workflow.size() ? workflow.get(currentIndex + 1) : normalizedCurrent)
+            );
+        }
+    }
+
+    private String generateUniqueMrn() {
+        int attempts = 0;
+        while (attempts < 10) {
+            int number = ThreadLocalRandom.current().nextInt(100000, 999999);
+            String candidate = "JAM-" + Year.now().getValue() + "-" + number;
+            if (!patientRepository.existsByMrn(candidate)) {
+                return candidate;
+            }
+            attempts++;
+        }
+        throw new IllegalStateException("Unable to generate a unique MRN for patient");
+    }
+} 

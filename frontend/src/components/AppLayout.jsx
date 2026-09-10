@@ -25,6 +25,9 @@ function AppLayout({ user, onLogout, children }) {
           <NavLink to="/billing" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             Billing
           </NavLink>
+          <NavLink to="/profile" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            Profile
+          </NavLink>
         </nav>
 
         <button type="button" className="logout-button" onClick={onLogout}>

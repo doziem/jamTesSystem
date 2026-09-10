@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function BillingPage() {
   const [billings, setBillings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const showError = useErrorRedirect()
 
   useEffect(() => {
     const loadBillings = async () => {
@@ -15,7 +18,9 @@ function BillingPage() {
         const payload = await readJson(`${API_BASE}/api/billing/patient/all?page=0&size=20`)
         setBillings(normalizeList(payload))
       } catch (err) {
-        setError(err.message || 'Unable to load billing records.')
+        const message = err.message || 'Unable to load billing records.'
+        setError(message)
+        showError(message)
       } finally {
         setLoading(false)
       }
@@ -31,6 +36,9 @@ function BillingPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Billing operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Billing</h1>
         </div>
+        <Link to="/billing/new" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+          Create billing
+        </Link>
       </div>
 
       {loading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading billing entries...</div> : null}

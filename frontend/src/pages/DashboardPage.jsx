@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function DashboardPage() {
   const [summary, setSummary] = useState({ patients: [], doctors: [], pharmacies: [], billings: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const showError = useErrorRedirect()
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -26,7 +28,9 @@ function DashboardPage() {
           billings: normalizeList(billingsResponse),
         })
       } catch (err) {
-        setError(err.message || 'Unable to load dashboard data.')
+        const message = err.message || 'Unable to load dashboard data.'
+        setError(message)
+        showError(message)
       } finally {
         setLoading(false)
       }

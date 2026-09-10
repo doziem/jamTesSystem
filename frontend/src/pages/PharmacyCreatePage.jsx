@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { API_BASE, getAuthHeaders } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const departmentOptions = ['MAIN_PHARMACY', 'GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
 
@@ -13,6 +14,7 @@ const initialForm = {
 
 function PharmacyCreatePage() {
   const navigate = useNavigate()
+  const showError = useErrorRedirect()
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -62,7 +64,9 @@ function PharmacyCreatePage() {
       setSuccess('Pharmacy created successfully.')
       setTimeout(() => navigate('/pharmacies'), 500)
     } catch (err) {
-      setError(err.message || 'Unable to create pharmacy.')
+      const message = err.message || 'Unable to create pharmacy.'
+      setError(message)
+      showError(message)
     } finally {
       setSaving(false)
     }

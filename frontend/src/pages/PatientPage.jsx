@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import DetailModal from '../components/DetailModal'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function PatientPage() {
   const [patients, setPatients] = useState([])
@@ -9,6 +10,7 @@ function PatientPage() {
   const [error, setError] = useState('')
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const showError = useErrorRedirect()
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -19,7 +21,9 @@ function PatientPage() {
         const payload = await readJson(`${API_BASE}/api/patients/all?page=0&size=20`)
         setPatients(normalizeList(payload))
       } catch (err) {
-        setError(err.message || 'Unable to load patient records.')
+        const message = err.message || 'Unable to load patient records.'
+        setError(message)
+        showError(message)
       } finally {
         setLoading(false)
       }
@@ -42,10 +46,12 @@ function PatientPage() {
       const detail = payload?.data || payload
       setSelectedPatient(detail)
     } catch (err) {
+      const message = err.message || 'Unable to fetch patient details.'
       setSelectedPatient({
         name: patient.name || patient.fullName || 'Patient',
-        error: err.message || 'Unable to fetch patient details.',
+        error: message,
       })
+      showError(message)
     } finally {
       setDetailLoading(false)
     }

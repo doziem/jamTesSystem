@@ -1,10 +1,9 @@
 package com.doziem.jamTesSystem.controller.authController;
 
 import com.doziem.jamTesSystem.constant.Role;
-import com.doziem.jamTesSystem.repository.UserRepository;
 import com.doziem.jamTesSystem.request.AuthRequest;
 import com.doziem.jamTesSystem.response.AuthResponse;
-import com.doziem.jamTesSystem.service.authService.AuthService;
+import com.doziem.jamTesSystem.service.authService.IAuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,17 +24,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerTest {
 
     @Mock
-    private AuthService authService;
-
-    @Mock
-    private UserRepository userRepository;
+    private IAuthService authService;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(userRepository, authService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService)).build();
         objectMapper = new ObjectMapper();
     }
 
@@ -77,5 +73,17 @@ class AuthControllerTest {
                         .content(requestBody))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.message").value("User created successfully. Please check your email for verification."));
+    }
+
+    @Test
+    void verifyEmailReturnsOk() throws Exception {
+        when(authService.verifyEmail("jane@example.com", "token")).thenReturn(
+                new com.doziem.jamTesSystem.response.ApiResponse(true, "Email verified successfully", "jane@example.com")
+        );
+
+        mockMvc.perform(post("/auth/verify-email?email=jane@example.com&token=token")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Email verified successfully"));
     }
 }

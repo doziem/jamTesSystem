@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { API_BASE, getAuthHeaders } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const initialForm = {
   patientId: '',
@@ -12,6 +13,7 @@ const initialForm = {
 
 function BillingCreatePage() {
   const navigate = useNavigate()
+  const showError = useErrorRedirect()
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -57,7 +59,9 @@ function BillingCreatePage() {
       setSuccess('Billing record created successfully.')
       setTimeout(() => navigate('/billing'), 500)
     } catch (err) {
-      setError(err.message || 'Unable to create billing record.')
+      const message = err.message || 'Unable to create billing record.'
+      setError(message)
+      showError(message)
     } finally {
       setSaving(false)
     }

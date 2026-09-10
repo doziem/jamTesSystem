@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import DashboardPage from './pages/DashboardPage'
 import PatientPage from './pages/PatientPage'
@@ -11,7 +11,9 @@ import BillingPage from './pages/BillingPage'
 import BillingCreatePage from './pages/BillingCreatePage'
 import LabReportCreatePage from './pages/LabReportCreatePage'
 import RegisterPage from './pages/RegisterPage'
-import { API_BASE, STORAGE_KEY } from './lib/api'
+import ProfilePage from './pages/ProfilePage'
+import ErrorPage from './pages/ErrorPage'
+import { API_BASE, STORAGE_KEY, writeJson } from './lib/api'
 
 const USER_STORAGE_KEY = 'jamtes-auth-user'
 
@@ -103,9 +105,16 @@ function ProtectedRoute({ token, children }) {
 
 function AppLayout({ user, onLogout, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const navClass =
     'flex items-center rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700'
   const activeClass = 'bg-blue-100 text-blue-700'
+  const initials = useMemo(() => {
+    const name = user?.name?.trim()
+    if (!name) return 'U'
+    const parts = name.split(/\s+/).filter(Boolean)
+    return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || 'U'
+  }, [user?.name])
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
@@ -141,7 +150,7 @@ function AppLayout({ user, onLogout, children }) {
           <button
             type="button"
             onClick={onLogout}
-            className="mt-6 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="mt-6 rounded-xl bg-slate-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-600"
           >
             Log out
           </button>
@@ -166,17 +175,40 @@ function AppLayout({ user, onLogout, children }) {
                 </div>
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500 sm:hidden">Hospital Portal</p>
               </div>
-              <div className="flex items-center justify-between gap-3 sm:justify-end">
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
-                  {user?.role || 'USER'}
-                </span>
+              <div className="relative flex items-center justify-between gap-3 sm:justify-end">
                 <button
                   type="button"
-                  onClick={onLogout}
-                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 lg:hidden"
+                  onClick={() => setAccountMenuOpen((isOpen) => !isOpen)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 transition hover:bg-blue-200"
+                  aria-haspopup="menu"
+                  aria-expanded={accountMenuOpen}
+                  aria-label="Open user menu"
                 >
-                  Log out
+                  {initials}
                 </button>
+                {accountMenuOpen ? (
+                  <div className="absolute right-0 top-12 z-20 min-w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg" role="menu">
+                    <NavLink
+                      to="/profile"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="block rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                      role="menuitem"
+                    >
+                      Profile
+                    </NavLink>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAccountMenuOpen(false)
+                        onLogout()
+                      }}
+                      className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                      role="menuitem"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -184,7 +216,6 @@ function AppLayout({ user, onLogout, children }) {
 
           <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
             <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Authenticated</p>
               <h2 className="mt-1 text-xl font-bold sm:text-2xl">{user?.name || 'Hospital staff'}</h2>
               <p className="text-sm text-slate-600">{user?.email || 'No email available'}</p>
             </div>
@@ -213,7 +244,7 @@ function App() {
     try {
       const data = await loginUser({ identifier, password })
       const nextToken = data.token || ''
-      const nextUser = { name: data.name || 'Authenticated user', email: data.email || identifier, role: data.role || 'USER' }
+      const nextUser = { id: data.userId || data.id || '', name: data.name || 'Authenticated user', email: data.email || identifier, phone: data.phone || '', role: data.role || 'USER' }
       setToken(nextToken)
       setUser(nextUser)
       if (nextToken) {
@@ -222,7 +253,7 @@ function App() {
       }
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err.message)
+      navigate('/error', { replace: true, state: { message: err.message || 'Unable to sign in.' } })
     } finally {
       setLoading(false)
     }
@@ -241,19 +272,22 @@ function App() {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch(`${API_BASE}/auth/register`, {
+      await writeJson(`${API_BASE}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, role: form.role || 'STAFF' }),
       })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.message || 'Unable to create your account. Please try again.')
       navigate('/login', { replace: true, state: { message: 'Registration successful. Please check your email to verify your account before logging in.' } })
     } catch (err) {
-      setError(err.message)
+      navigate('/error', { replace: true, state: { message: err.message || 'Unable to create your account.' } })
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleUserUpdate = (nextUser) => {
+    const mergedUser = { ...user, ...(nextUser || {}) }
+    setUser(mergedUser)
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mergedUser))
   }
 
   return (
@@ -270,6 +304,8 @@ function App() {
       <Route path="/billing" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><BillingPage /></AppLayout></ProtectedRoute>} />
       <Route path="/billing/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><BillingCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/lab-reports" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><ProfilePage user={user} token={token} onUserUpdate={handleUserUpdate} /></AppLayout></ProtectedRoute>} />
+      <Route path="/error" element={<ErrorPage />} />
       <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
     </Routes>
   )

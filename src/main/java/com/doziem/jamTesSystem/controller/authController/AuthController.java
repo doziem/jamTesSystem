@@ -1,34 +1,23 @@
 package com.doziem.jamTesSystem.controller.authController;
 
 import com.doziem.jamTesSystem.dto.UserDto;
-import com.doziem.jamTesSystem.model.User;
-import com.doziem.jamTesSystem.repository.UserRepository;
+import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.request.AuthRequest;
-import com.doziem.jamTesSystem.response.ApiResponse;
 import com.doziem.jamTesSystem.response.AuthResponse;
-import com.doziem.jamTesSystem.service.userService.IUserService;
-import com.doziem.jamTesSystem.config.JwtUtil;
-import com.doziem.jamTesSystem.service.authService.AuthService;
-import com.doziem.jamTesSystem.service.emailService.EmailService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.doziem.jamTesSystem.response.ApiResponse;
+import com.doziem.jamTesSystem.service.authService.IAuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final AuthService authService;
-    private final UserRepository userRepository;
-
-    public AuthController(UserRepository userRepository,  AuthService authService) {
+    private final IAuthService authService;
+    public AuthController(IAuthService authService) {
         this.authService = authService;
-        this.userRepository = userRepository;
     }
 
     @PostMapping("/login")
@@ -53,21 +42,21 @@ public class AuthController {
 
     @GetMapping("/verify-email")
     public ResponseEntity<ApiResponse> verifyEmail(@RequestParam String email, @RequestParam(required = false) String token) {
-        Optional<User> userOptional = userRepository.findByEmailIgnoreCase(email);
-        if (userOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false, "User not found"));
+        try {
+            return ResponseEntity.ok(authService.verifyEmail(email, token));
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false, ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, ex.getMessage()));
         }
+    }
 
-        User user = userOptional.get();
-        if (token != null && !token.isBlank()) {
-            if (user.getEmailVerificationToken() == null || !user.getEmailVerificationToken().equals(token)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "Invalid verification token"));
-            }
+    @GetMapping("/me")
+    public ResponseEntity<UserDto> me(Authentication authentication) {
+        try {
+            return ResponseEntity.ok(authService.getCurrentUser(authentication));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        user.setVerified(true);
-        user.setEmailVerificationToken(null);
-        userRepository.save(user);
-        return ResponseEntity.ok(new ApiResponse(true, "Email verified successfully", user.getEmail()));
     }
 }

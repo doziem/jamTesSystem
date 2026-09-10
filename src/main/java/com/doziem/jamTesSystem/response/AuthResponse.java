@@ -10,6 +10,7 @@ public class AuthResponse {
     private final String message;
     private  String name;
     private String email;
+    private String userId;
     private String phone;
     private Role role;
     private boolean active;
@@ -27,6 +28,11 @@ public class AuthResponse {
         this.role = role;
         this.active = active;
         this.token = token;
+    }
+
+    public AuthResponse(String message, String userId, String name, String email, String phone, Role role, boolean active, String token) {
+        this(message, name, email, phone, role, active, token);
+        this.userId = userId;
     }
 
     public void setActive(boolean active) {
@@ -53,4 +59,3 @@ public class AuthResponse {
         this.token = token;
     }
 }
-

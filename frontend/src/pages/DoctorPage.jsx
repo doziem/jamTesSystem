@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import DetailModal from '../components/DetailModal'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function DoctorPage() {
   const [doctors, setDoctors] = useState([])
@@ -9,6 +10,7 @@ function DoctorPage() {
   const [error, setError] = useState('')
   const [selectedDoctor, setSelectedDoctor] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const showError = useErrorRedirect()
 
   useEffect(() => {
     const loadDoctors = async () => {
@@ -19,7 +21,9 @@ function DoctorPage() {
         const payload = await readJson(`${API_BASE}/api/doctors/all`)
         setDoctors(normalizeList(payload))
       } catch (err) {
-        setError(err.message || 'Unable to load doctor records.')
+        const message = err.message || 'Unable to load doctor records.'
+        setError(message)
+        showError(message)
       } finally {
         setLoading(false)
       }
@@ -41,11 +45,13 @@ function DoctorPage() {
       const detail = await readJson(`${API_BASE}/api/doctors/${doctorId}/single`)
       setSelectedDoctor(detail)
     } catch (err) {
+      const message = err.message || 'Unable to fetch doctor details.'
       setSelectedDoctor({
         firstName: doctor.firstName || '',
         lastName: doctor.lastName || '',
-        error: err.message || 'Unable to fetch doctor details.',
+        error: message,
       })
+      showError(message)
     } finally {
       setDetailLoading(false)
     }

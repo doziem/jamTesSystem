@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { API_BASE, getAuthHeaders } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const initialForm = {
   patientId: '',
@@ -15,6 +16,7 @@ const initialForm = {
 
 function LabReportCreatePage() {
   const navigate = useNavigate()
+  const showError = useErrorRedirect()
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -59,7 +61,9 @@ function LabReportCreatePage() {
       setSuccess('Lab report created successfully.')
       setTimeout(() => navigate('/lab-reports'), 500)
     } catch (err) {
-      setError(err.message || 'Unable to create lab report.')
+      const message = err.message || 'Unable to create lab report.'
+      setError(message)
+      showError(message)
     } finally {
       setSaving(false)
     }

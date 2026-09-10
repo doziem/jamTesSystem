@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { API_BASE, getAuthHeaders } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const initialForm = {
   firstName: '',
@@ -19,6 +20,7 @@ const initialForm = {
 
 function PatientCreatePage() {
   const navigate = useNavigate()
+  const showError = useErrorRedirect()
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -68,7 +70,9 @@ function PatientCreatePage() {
       setSuccess('Patient created successfully.')
       setTimeout(() => navigate('/patients'), 500)
     } catch (err) {
-      setError(err.message || 'Unable to create patient.')
+      const message = err.message || 'Unable to create patient.'
+      setError(message)
+      showError(message)
     } finally {
       setSaving(false)
     }

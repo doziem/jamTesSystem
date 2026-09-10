@@ -6,7 +6,9 @@ import com.doziem.jamTesSystem.mapper.UserMapper;
 import com.doziem.jamTesSystem.model.User;
 import com.doziem.jamTesSystem.repository.UserRepository;
 import com.doziem.jamTesSystem.request.AuthRequest;
+import com.doziem.jamTesSystem.response.ApiResponse;
 import com.doziem.jamTesSystem.response.AuthResponse;
+import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.service.emailService.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -61,6 +63,7 @@ public class AuthService implements IAuthService{
         String token = jwtUtil.generateToken((UserDetails) authentication.getPrincipal());
 
         return new AuthResponse("Login successful",
+                user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getPhone(),
@@ -88,6 +91,7 @@ public class AuthService implements IAuthService{
         emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getName(), savedUser.getEmailVerificationToken());
         return new AuthResponse(
                 "User created successfully. Please check your email for verification.",
+                savedUser.getId(),
                 savedUser.getName(),
                 savedUser.getEmail(),
                 savedUser.getPhone(),
@@ -95,5 +99,34 @@ public class AuthService implements IAuthService{
                 savedUser.isActive(),
                 null
         );
+    }
+
+    @Override
+    public ApiResponse verifyEmail(String email, String token) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (token != null && !token.isBlank()) {
+            if (user.getEmailVerificationToken() == null || !user.getEmailVerificationToken().equals(token)) {
+                throw new IllegalArgumentException("Invalid verification token");
+            }
+        }
+
+        user.setVerified(true);
+        user.setEmailVerificationToken(null);
+        userRepository.save(user);
+        return new ApiResponse(true, "Email verified successfully", user.getEmail());
+    }
+
+    @Override
+    public UserDto getCurrentUser(Authentication authentication) {
+        if (authentication == null) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
+
+        User user = userRepository.findByEmailIgnoreCase(authentication.getName())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return userMapper.toDto(user);
     }
 }

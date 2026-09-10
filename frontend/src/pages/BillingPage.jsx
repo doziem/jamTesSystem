@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function BillingPage() {
   const [billings, setBillings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const showError = useErrorRedirect()
 
   useEffect(() => {
     const loadBillings = async () => {
@@ -16,7 +18,9 @@ function BillingPage() {
         const payload = await readJson(`${API_BASE}/api/billing/patient/all?page=0&size=20`)
         setBillings(normalizeList(payload))
       } catch (err) {
-        setError(err.message || 'Unable to load billing records.')
+        const message = err.message || 'Unable to load billing records.'
+        setError(message)
+        showError(message)
       } finally {
         setLoading(false)
       }

@@ -1,6 +1,7 @@
 package com.doziem.jamTesSystem.controller.patientController;
 
 import com.doziem.jamTesSystem.dto.EncounterDto;
+import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
 import com.doziem.jamTesSystem.request.EncounterStatusRequest;
 import com.doziem.jamTesSystem.service.patientService.IPatientService;
@@ -124,9 +125,22 @@ class PatientControllerTest {
 
         when(patientService.updateEncounterStatus(eq("e-1"), any(EncounterStatusRequest.class))).thenReturn(dto);
 
+        EncounterStatusRequest request = new EncounterStatusRequest();
+        request.setStatus("TRIAGED");
+
         mockMvc.perform(patch("/api/patients/encounters/e-1/status")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new EncounterStatusRequest("TRIAGED"))))
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getAssignableDoctorsReturnsOk() throws Exception {
+        DoctorDto dto = DoctorDto.builder().id("d-1").fullName("Dr Jane Doe").build();
+
+        when(patientService.getAssignableDoctors()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/patients/doctors/assignable"))
                 .andExpect(status().isOk());
     }
 }

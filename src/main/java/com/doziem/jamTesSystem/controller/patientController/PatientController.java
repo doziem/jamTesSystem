@@ -1,6 +1,7 @@
 package com.doziem.jamTesSystem.controller.patientController;
 
 import com.doziem.jamTesSystem.dto.EncounterDto;
+import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
 import com.doziem.jamTesSystem.request.EncounterStatusRequest;
 import com.doziem.jamTesSystem.request.PatientArrivalRequest;
@@ -54,6 +55,12 @@ public class PatientController {
     @GetMapping("/mrn/{mrn}")
     public ResponseEntity<ApiResponse> getPatientByMrn(@PathVariable String mrn) {
         return ResponseEntity.ok().body(new ApiResponse(true, "Patient fetched", patientService.getPatientByMrn(mrn)));
+    }
+
+    @GetMapping("/doctors/assignable")
+    public ResponseEntity<ApiResponse> getAssignableDoctors() {
+        List<DoctorDto> doctors = patientService.getAssignableDoctors();
+        return ResponseEntity.ok(new ApiResponse(true, "Assignable doctors fetched", doctors));
     }
 
     @GetMapping("/{id}/history")

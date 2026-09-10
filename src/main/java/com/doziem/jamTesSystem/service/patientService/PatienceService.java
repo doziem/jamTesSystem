@@ -1,23 +1,29 @@
 package com.doziem.jamTesSystem.service.patientService;
 
 import com.doziem.jamTesSystem.dto.EncounterDto;
+import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
 import com.doziem.jamTesSystem.exceptions.InvalidResourceException;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.mapper.BillingMapper;
+import com.doziem.jamTesSystem.mapper.DoctorMapper;
 import com.doziem.jamTesSystem.mapper.EncounterMapper;
 import com.doziem.jamTesSystem.mapper.LabReportMapper;
 import com.doziem.jamTesSystem.mapper.PatientMapper;
 import com.doziem.jamTesSystem.mapper.PrescriptionMapper;
+import com.doziem.jamTesSystem.model.Doctor;
 import com.doziem.jamTesSystem.model.Encounter;
 import com.doziem.jamTesSystem.model.Patient;
+import com.doziem.jamTesSystem.repository.BillingRepository;
+import com.doziem.jamTesSystem.repository.DoctorRepository;
 import com.doziem.jamTesSystem.repository.EncounterRepository;
+import com.doziem.jamTesSystem.repository.LabReportRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
+import com.doziem.jamTesSystem.repository.PrescriptionRepository;
 import com.doziem.jamTesSystem.request.EncounterStatusRequest;
 import com.doziem.jamTesSystem.request.PatientArrivalRequest;
 import com.doziem.jamTesSystem.response.PatientArrivalResponse;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +42,14 @@ import java.util.stream.Collectors;
 public class PatienceService implements IPatientService{
     private final PatientRepository patientRepository;
     private final EncounterRepository encounterRepository;
+    private final DoctorRepository doctorRepository;
+    private final PrescriptionRepository prescriptionRepository;
+    private final LabReportRepository labReportRepository;
+    private final BillingRepository billingRepository;
+    private final DoctorMapper doctorMapper;
+    private final BillingMapper billingMapper;
+    private final LabReportMapper labReportMapper;
+    private final PrescriptionMapper prescriptionMapper;
     private PatientMapper patientMapper = new PatientMapper(
             new BillingMapper(),
             new LabReportMapper(),
@@ -55,9 +69,20 @@ public class PatienceService implements IPatientService{
     @Override
     @Transactional(readOnly = true)
     public PatientDto getPatientById(String id) {
-        return patientRepository.findById(id)
-                .map(patientMapper::toDto)
+        Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
+        PatientDto patientDto = patientMapper.toDto(patient);
+        patientDto.setEncounters(getPatientVisitHistory(id));
+        patientDto.setPrescriptions(prescriptionRepository == null || prescriptionMapper == null
+                ? new ArrayList<>()
+                : prescriptionRepository.findByPatientId(id).stream().map(prescriptionMapper::toDto).collect(Collectors.toList()));
+        patientDto.setLabReports(labReportRepository == null || labReportMapper == null
+                ? new ArrayList<>()
+                : labReportRepository.findByPatientId(id).stream().map(labReportMapper::toDto).collect(Collectors.toList()));
+        patientDto.setBillingRecords(billingRepository == null || billingMapper == null
+                ? new ArrayList<>()
+                : billingRepository.findByPatientId(id).stream().map(billingMapper::toDto).collect(Collectors.toList()));
+        return patientDto;
     }
 
     @Override
@@ -145,14 +170,22 @@ public class PatienceService implements IPatientService{
                 .build();
     }
 
-    private static Encounter getEncounter(PatientArrivalRequest request, Patient patient) {
+    @Override
+    @Transactional(readOnly = true)
+    public List<DoctorDto> getAssignableDoctors() {
+        return doctorRepository.findAll().stream()
+                .map(doctorMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    private Encounter getEncounter(PatientArrivalRequest request, Patient patient) {
         String visitType = request.getVisitType() == null || request.getVisitType().isBlank() ? "OPD" : request.getVisitType().trim();
         Encounter encounter = new Encounter();
         encounter.setPatient(patient);
         encounter.setVisitType(visitType);
         encounter.setStatus("ARRIVED");
         encounter.setDepartmentName(request.getDepartmentName() == null || request.getDepartmentName().isBlank() ? "Reception" : request.getDepartmentName());
-        encounter.setAssignedDoctorId(request.getAssignedDoctorId());
+        applyDoctorAssignment(encounter, request.getAssignedDoctorId());
         encounter.setTriageNotes(request.getTriageNotes());
         return encounter;
     }
@@ -187,7 +220,28 @@ public class PatienceService implements IPatientService{
 
         String nextStatus = normalizeEncounterStatus(request.getStatus());
         validateEncounterStatusTransition(encounter.getStatus(), nextStatus);
+        if (request.getDepartmentName() != null && !request.getDepartmentName().isBlank()) {
+            encounter.setDepartmentName(request.getDepartmentName().trim());
+        }
+        if (request.getTriageNotes() != null && !request.getTriageNotes().isBlank()) {
+            encounter.setTriageNotes(request.getTriageNotes().trim());
+        }
+        if (request.getAdmissionNotes() != null && !request.getAdmissionNotes().isBlank()) {
+            encounter.setAdmissionNotes(request.getAdmissionNotes().trim());
+        }
+        if (request.getDischargeNotes() != null && !request.getDischargeNotes().isBlank()) {
+            encounter.setDischargeNotes(request.getDischargeNotes().trim());
+        }
+        if (request.getAssignedDoctorId() != null) {
+            applyDoctorAssignment(encounter, request.getAssignedDoctorId());
+        }
         encounter.setStatus(nextStatus);
+        if ("ADMITTED".equals(nextStatus) && encounter.getAdmittedAt() == null) {
+            encounter.setAdmittedAt(java.time.LocalDateTime.now());
+        }
+        if ("DISCHARGED".equals(nextStatus) && encounter.getDischargedAt() == null) {
+            encounter.setDischargedAt(java.time.LocalDateTime.now());
+        }
         return encounterMapper.toDto(encounterRepository.save(encounter));
     }
 
@@ -235,6 +289,20 @@ public class PatienceService implements IPatientService{
                 .orElseThrow(()->new ResourceNotFoundException("Patient not found with id: " + id));
         patientRepository.delete(patient);
 
+    }
+
+    private void applyDoctorAssignment(Encounter encounter, String doctorId) {
+        if (doctorId == null || doctorId.isBlank()) {
+            encounter.setAssignedDoctorId(null);
+            encounter.setAssignedDoctorName(null);
+            return;
+        }
+
+        Doctor doctor = doctorRepository.findById(doctorId.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
+        encounter.setAssignedDoctorId(doctor.getId());
+        encounter.setAssignedDoctorName(((doctor.getFirstName() == null ? "" : doctor.getFirstName()) + " "
+                + (doctor.getLastName() == null ? "" : doctor.getLastName())).trim());
     }
 
     private String normalizeEncounterStatus(String rawStatus) {

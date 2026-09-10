@@ -9,4 +9,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EncounterStatusRequest {
     private String status;
+    private String departmentName;
+    private String assignedDoctorId;
+    private String triageNotes;
+    private String admissionNotes;
+    private String dischargeNotes;
 }

@@ -20,7 +20,12 @@ public class EncounterMapper {
                 .arrivalTime(encounter.getArrivalTime())
                 .departmentName(encounter.getDepartmentName())
                 .assignedDoctorId(encounter.getAssignedDoctorId())
+                .assignedDoctorName(encounter.getAssignedDoctorName())
                 .triageNotes(encounter.getTriageNotes())
+                .admittedAt(encounter.getAdmittedAt())
+                .dischargedAt(encounter.getDischargedAt())
+                .admissionNotes(encounter.getAdmissionNotes())
+                .dischargeNotes(encounter.getDischargeNotes())
                 .build();
     }
 }

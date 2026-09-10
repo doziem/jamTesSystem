@@ -19,5 +19,10 @@ public class EncounterDto {
     private LocalDateTime arrivalTime;
     private String departmentName;
     private String assignedDoctorId;
+    private String assignedDoctorName;
     private String triageNotes;
+    private LocalDateTime admittedAt;
+    private LocalDateTime dischargedAt;
+    private String admissionNotes;
+    private String dischargeNotes;
 }

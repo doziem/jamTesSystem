@@ -4,6 +4,13 @@ import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const STATUS_FLOW = ['ARRIVED', 'TRIAGED', 'ADMITTED', 'IN_TREATMENT', 'DISCHARGED']
+const DEFAULT_FORM = {
+  departmentName: '',
+  assignedDoctorId: '',
+  triageNotes: '',
+  admissionNotes: '',
+  dischargeNotes: '',
+}
 
 function formatStatusLabel(status) {
   return (status || 'ARRIVED').replaceAll('_', ' ')
@@ -19,6 +26,8 @@ function PatientDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('success')
+  const [doctors, setDoctors] = useState([])
+  const [workflowForm, setWorkflowForm] = useState({})
 
   const fullName = useMemo(() => {
     if (!patient) return 'Patient'
@@ -35,6 +44,21 @@ function PatientDetailPage() {
       const historyPayload = await readJson(`${API_BASE}/api/patients/${id}/history`)
       const nextHistory = normalizeList(historyPayload)
       setHistory(nextHistory)
+      setWorkflowForm(
+        nextHistory.reduce((acc, encounter) => {
+          acc[encounter.id] = {
+            departmentName: encounter.departmentName || '',
+            assignedDoctorId: encounter.assignedDoctorId || '',
+            triageNotes: encounter.triageNotes || '',
+            admissionNotes: encounter.admissionNotes || '',
+            dischargeNotes: encounter.dischargeNotes || '',
+          }
+          return acc
+        }, {}),
+      )
+
+      const doctorPayload = await readJson(`${API_BASE}/api/patients/doctors/assignable`)
+      setDoctors(normalizeList(doctorPayload))
     } catch (err) {
       const nextMessage = err.message || 'Unable to load patient details.'
       showError(nextMessage)
@@ -58,7 +82,7 @@ function PatientDetailPage() {
     try {
       await writeJson(`${API_BASE}/api/patients/encounters/${encounterId}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: nextStatus, ...(workflowForm[encounterId] || DEFAULT_FORM) }),
       })
       setMessage(`Encounter status updated to ${formatStatusLabel(nextStatus)}.`)
       await loadPatient()
@@ -69,6 +93,16 @@ function PatientDetailPage() {
       showError(nextMessage)
     } finally {
       setUpdating(false)
+    }
+
+    const handleWorkflowChange = (encounterId, field, value) => {
+      setWorkflowForm((prev) => ({
+        ...prev,
+        [encounterId]: {
+          ...(prev[encounterId] || DEFAULT_FORM),
+          [field]: value,
+        },
+      }))
     }
   }
 
@@ -101,6 +135,53 @@ function PatientDetailPage() {
           <div className="rounded-2xl bg-slate-50 p-4"><div className="text-xs uppercase tracking-[0.14em] text-slate-500">Phone</div><div className="mt-2 text-sm font-semibold text-slate-900">{patient.phone || 'N/A'}</div></div>
           <div className="rounded-2xl bg-slate-50 p-4"><div className="text-xs uppercase tracking-[0.14em] text-slate-500">Date of birth</div><div className="mt-2 text-sm font-semibold text-slate-900">{patient.dateOfBirth || 'N/A'}</div></div>
           <div className="rounded-2xl bg-slate-50 p-4"><div className="text-xs uppercase tracking-[0.14em] text-slate-500">Gender</div><div className="mt-2 text-sm font-semibold text-slate-900">{patient.gender || 'N/A'}</div></div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Lab activity</div>
+          <h2 className="mt-1 text-xl font-bold text-slate-900">Lab reports</h2>
+          <div className="mt-4 space-y-3">
+            {(patient.labReports || []).length === 0 ? <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">No lab activity yet.</div> : patient.labReports.map((report) => (
+              <div key={report.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-900">{report.testName || 'Lab test'}</div>
+                <div className="mt-1 text-sm text-slate-600">Requested by: {report.requestedBy || 'N/A'}</div>
+                <div className="mt-1 text-sm text-slate-600">Report date: {report.reportDate || 'N/A'}</div>
+                <div className="mt-2 text-sm text-slate-700">{report.result || 'Pending result'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Pharmacy activity</div>
+          <h2 className="mt-1 text-xl font-bold text-slate-900">Prescriptions</h2>
+          <div className="mt-4 space-y-3">
+            {(patient.prescriptions || []).length === 0 ? <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">No pharmacy activity yet.</div> : patient.prescriptions.map((prescription) => (
+              <div key={prescription.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-900">{prescription.medicationName || 'Medication'}</div>
+                <div className="mt-1 text-sm text-slate-600">{prescription.dosage || 'N/A'} • {prescription.frequency || 'N/A'}</div>
+                <div className="mt-1 text-sm text-slate-600">Status: {prescription.status || 'N/A'}</div>
+                <div className="mt-1 text-sm text-slate-600">Total cost: {prescription.totalCost || '0'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Billing activity</div>
+          <h2 className="mt-1 text-xl font-bold text-slate-900">Billing</h2>
+          <div className="mt-4 space-y-3">
+            {(patient.billingRecords || []).length === 0 ? <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">No billing activity yet.</div> : patient.billingRecords.map((billing) => (
+              <div key={billing.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-900">{billing.paymentMethod || 'Billing record'}</div>
+                <div className="mt-1 text-sm text-slate-600">Amount: {billing.totalAmount || '0'}</div>
+                <div className="mt-1 text-sm text-slate-600">Date: {billing.billingDate || 'N/A'}</div>
+                <div className="mt-1 text-sm text-slate-600">Paid: {billing.paid || billing.isPaid ? 'Yes' : 'No'}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -144,12 +225,74 @@ function PatientDetailPage() {
                   <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-600">
                     <span>Department: {encounter.departmentName || 'Reception'}</span>
                     <span>•</span>
-                    <span>Doctor: {encounter.assignedDoctorId || 'Unassigned'}</span>
+                    <span>Doctor: {encounter.assignedDoctorName || encounter.assignedDoctorId || 'Unassigned'}</span>
                   </div>
 
                   {encounter.triageNotes ? (
                     <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
                       {encounter.triageNotes}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <label className="grid gap-2 text-sm font-medium text-slate-700">
+                      Department
+                      <input
+                        value={workflowForm[encounter.id]?.departmentName || ''}
+                        onChange={(event) => handleWorkflowChange(encounter.id, 'departmentName', event.target.value)}
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        placeholder="Emergency"
+                      />
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium text-slate-700">
+                      Assigned doctor
+                      <select
+                        value={workflowForm[encounter.id]?.assignedDoctorId || ''}
+                        onChange={(event) => handleWorkflowChange(encounter.id, 'assignedDoctorId', event.target.value)}
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                      >
+                        <option value="">Unassigned</option>
+                        {doctors.map((doctor) => (
+                          <option key={doctor.id} value={doctor.id}>
+                            {doctor.fullName || [doctor.firstName, doctor.lastName].filter(Boolean).join(' ') || doctor.id}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-2">
+                      Triage notes
+                      <textarea
+                        value={workflowForm[encounter.id]?.triageNotes || ''}
+                        onChange={(event) => handleWorkflowChange(encounter.id, 'triageNotes', event.target.value)}
+                        className="min-h-24 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        placeholder="Vitals, symptoms, and triage assessment"
+                      />
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium text-slate-700">
+                      Admission notes
+                      <textarea
+                        value={workflowForm[encounter.id]?.admissionNotes || ''}
+                        onChange={(event) => handleWorkflowChange(encounter.id, 'admissionNotes', event.target.value)}
+                        className="min-h-24 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        placeholder="Ward, bed, and admission summary"
+                      />
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium text-slate-700">
+                      Discharge notes
+                      <textarea
+                        value={workflowForm[encounter.id]?.dischargeNotes || ''}
+                        onChange={(event) => handleWorkflowChange(encounter.id, 'dischargeNotes', event.target.value)}
+                        className="min-h-24 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        placeholder="Outcome, medications, and follow-up plan"
+                      />
+                    </label>
+                  </div>
+
+                  {(encounter.admittedAt || encounter.dischargedAt) ? (
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                      {encounter.admittedAt ? <span>Admitted: {new Date(encounter.admittedAt).toLocaleString()}</span> : null}
+                      {encounter.admittedAt && encounter.dischargedAt ? <span>•</span> : null}
+                      {encounter.dischargedAt ? <span>Discharged: {new Date(encounter.dischargedAt).toLocaleString()}</span> : null}
                     </div>
                   ) : null}
 

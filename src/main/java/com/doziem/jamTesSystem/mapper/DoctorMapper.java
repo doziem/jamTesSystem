@@ -12,6 +12,7 @@ public class DoctorMapper {
                 .id(doctor.getId())
                 .firstName(doctor.getFirstName())
                 .lastName(doctor.getLastName())
+                .fullName(((doctor.getFirstName() == null ? "" : doctor.getFirstName()) + " " + (doctor.getLastName() == null ? "" : doctor.getLastName())).trim())
                 .specialization(doctor.getSpecialization())
                 .experience(doctor.getExperience())
                 .userId(doctor.getUser() != null ? doctor.getUser().getId() : null)

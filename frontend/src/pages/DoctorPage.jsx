@@ -76,7 +76,7 @@ function DoctorPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Doctor operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Doctors</h1>
         </div>
-        <Link to="/doctors/new" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+        <Link to="/doctors/new" className="rounded-xl btn-brand px-4 py-2 text-sm font-semibold transition">
           Create doctor
         </Link>
       </div>
@@ -103,7 +103,7 @@ function DoctorPage() {
                     <Link to={`/doctors/${doctorId}/edit`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
                       Edit
                     </Link>
-                    <button type="button" className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white" onClick={() => openDoctorDetails(doctor)}>
+                    <button type="button" className="rounded-xl btn-brand px-3 py-2 text-sm font-semibold" onClick={() => openDoctorDetails(doctor)}>
                       View details
                     </button>
                   </div>

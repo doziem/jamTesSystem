@@ -162,8 +162,8 @@ function AppLayout({ user, onLogout, children }) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+            <div className="flex items-start justify-between gap-3 sm:items-center">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
@@ -175,15 +175,17 @@ function AppLayout({ user, onLogout, children }) {
                       <path d="M4 7h16M4 12h16M4 17h16" />
                     </svg>
                   </button>
-                  <div className="text-xl font-bold tracking-tight sm:text-2xl">JamTes System</div>
+                  <div className="min-w-0">
+                    <div className="truncate text-lg font-bold tracking-tight sm:text-2xl">JamTes System</div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500 sm:hidden">Hospital Portal</p>
+                  </div>
                 </div>
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-500 sm:hidden">Hospital Portal</p>
               </div>
-              <div className="relative flex items-center justify-between gap-3 sm:justify-end">
+              <div className="relative flex shrink-0 items-start justify-end gap-3 sm:items-center">
                 <button
                   type="button"
                   onClick={() => setAccountMenuOpen((isOpen) => !isOpen)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 transition hover:bg-blue-200"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full btn-brand-soft text-sm font-bold transition"
                   aria-haspopup="menu"
                   aria-expanded={accountMenuOpen}
                   aria-label="Open user menu"

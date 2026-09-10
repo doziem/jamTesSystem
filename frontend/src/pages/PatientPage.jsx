@@ -77,7 +77,7 @@ function PatientPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Patient operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Patients</h1>
         </div>
-        <Link to="/patients/new" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+        <Link to="/patients/new" className="rounded-xl btn-brand px-4 py-2 text-sm font-semibold transition">
           Create patient
         </Link>
       </div>
@@ -109,7 +109,7 @@ function PatientPage() {
                     <Link to={`/patients/${patientId}/edit`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
                       Edit
                     </Link>
-                    <button type="button" className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white" onClick={() => openPatientDetails(patient)}>
+                    <button type="button" className="rounded-xl btn-brand px-3 py-2 text-sm font-semibold" onClick={() => openPatientDetails(patient)}>
                       Quick view
                     </button>
                   </div>

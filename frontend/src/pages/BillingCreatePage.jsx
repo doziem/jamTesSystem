@@ -116,7 +116,7 @@ function BillingCreatePage() {
           <Link to="/billing" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
             Cancel
           </Link>
-          <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70">
+          <button type="submit" disabled={saving} className="rounded-xl btn-brand px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70">
             {saving ? 'Saving...' : 'Create billing'}
           </button>
         </div>

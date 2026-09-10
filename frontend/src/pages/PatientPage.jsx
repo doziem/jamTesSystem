@@ -91,17 +91,28 @@ function PatientPage() {
             const name = patient.name || patient.fullName || [patient.firstName, patient.lastName].filter(Boolean).join(' ') || `Patient ${index + 1}`
             const email = patient.email || patient.emailAddress || 'N/A'
             const phone = patient.phone || patient.phoneNumber || 'N/A'
+            const patientId = patient.id || patient.patientId
+            const mrn = patient.mrn || 'N/A'
 
             return (
-              <div key={patient.id || patient.patientId || `${name}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div key={patientId || `${name}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <strong className="block text-base font-semibold text-slate-900">{name}</strong>
+                    <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.12em] text-blue-600">MRN: {mrn}</span>
                     <span className="mt-1 block text-sm text-slate-600">{email}</span>
                   </div>
-                  <button type="button" className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white" onClick={() => openPatientDetails(patient)}>
-                    View details
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link to={`/patients/${patientId}`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                      View
+                    </Link>
+                    <Link to={`/patients/${patientId}/edit`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                      Edit
+                    </Link>
+                    <button type="button" className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white" onClick={() => openPatientDetails(patient)}>
+                      Quick view
+                    </button>
+                  </div>
                 </div>
                 <small className="mt-3 block text-sm text-slate-500">{phone}</small>
               </div>

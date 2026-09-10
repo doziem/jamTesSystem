@@ -26,7 +26,6 @@ import java.util.UUID;
 public class Pharmacy {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(nullable = false)

@@ -1,10 +1,16 @@
 package com.doziem.jamTesSystem.service.patientService;
 
+import com.doziem.jamTesSystem.dto.EncounterDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
+import com.doziem.jamTesSystem.exceptions.InvalidResourceException;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
+import com.doziem.jamTesSystem.mapper.EncounterMapper;
 import com.doziem.jamTesSystem.mapper.PatientMapper;
+import com.doziem.jamTesSystem.model.Encounter;
 import com.doziem.jamTesSystem.model.Patient;
+import com.doziem.jamTesSystem.repository.EncounterRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
+import com.doziem.jamTesSystem.request.EncounterStatusRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +36,12 @@ class PatienceServiceTest {
 
     @Mock
     private PatientMapper patientMapper;
+
+    @Mock
+    private EncounterRepository encounterRepository;
+
+    @Mock
+    private EncounterMapper encounterMapper;
 
     @InjectMocks
     private PatienceService patienceService;
@@ -151,6 +163,65 @@ class PatienceServiceTest {
         patienceService.deletePatient("p-1");
 
         verify(patientRepository).delete(patient);
+    }
+
+    @Test
+    void getPatientVisitHistoryReturnsEncounterDtos() {
+        Patient patient = new Patient();
+        patient.setId("p-1");
+
+        Encounter encounter = new Encounter();
+        encounter.setId("e-1");
+        encounter.setPatient(patient);
+        encounter.setStatus("ARRIVED");
+
+        EncounterDto dto = EncounterDto.builder().id("e-1").patientId("p-1").status("ARRIVED").build();
+
+        when(patientRepository.findById("p-1")).thenReturn(Optional.of(patient));
+        when(encounterRepository.findByPatientIdOrderByArrivalTimeDesc("p-1")).thenReturn(List.of(encounter));
+        when(encounterMapper.toDto(encounter)).thenReturn(dto);
+
+        List<EncounterDto> result = patienceService.getPatientVisitHistory("p-1");
+
+        assertEquals(1, result.size());
+        assertEquals("e-1", result.get(0).getId());
+    }
+
+    @Test
+    void updateEncounterStatusMovesToNextWorkflowState() {
+        Patient patient = new Patient();
+        patient.setId("p-1");
+
+        Encounter encounter = new Encounter();
+        encounter.setId("e-1");
+        encounter.setPatient(patient);
+        encounter.setStatus("ARRIVED");
+
+        EncounterDto dto = EncounterDto.builder().id("e-1").patientId("p-1").status("TRIAGED").build();
+
+        when(encounterRepository.findById("e-1")).thenReturn(Optional.of(encounter));
+        when(encounterRepository.save(any(Encounter.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(encounterMapper.toDto(any(Encounter.class))).thenReturn(dto);
+
+        EncounterDto result = patienceService.updateEncounterStatus("e-1", new EncounterStatusRequest("TRIAGED"));
+
+        assertEquals("TRIAGED", result.getStatus());
+    }
+
+    @Test
+    void updateEncounterStatusRejectsSkippedWorkflowState() {
+        Patient patient = new Patient();
+        patient.setId("p-1");
+
+        Encounter encounter = new Encounter();
+        encounter.setId("e-1");
+        encounter.setPatient(patient);
+        encounter.setStatus("ARRIVED");
+
+        when(encounterRepository.findById("e-1")).thenReturn(Optional.of(encounter));
+
+        assertThrows(InvalidResourceException.class,
+                () -> patienceService.updateEncounterStatus("e-1", new EncounterStatusRequest("ADMITTED")));
     }
 
     @Test

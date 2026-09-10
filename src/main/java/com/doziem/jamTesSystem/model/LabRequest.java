@@ -21,16 +21,14 @@ import java.util.UUID;
 @Table(name = "lab_request")
 public class LabRequest {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
     private String id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false, columnDefinition = "uuid")
+    @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
     @ManyToOne
-    @JoinColumn(name = "requested_by", nullable = false, columnDefinition = "uuid")
+    @JoinColumn(name = "requested_by", nullable = false)
     private User requestedBy;
 
     private LocalDate requestDate;

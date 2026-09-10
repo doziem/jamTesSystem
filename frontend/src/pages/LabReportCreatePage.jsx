@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { API_BASE, getAuthHeaders } from '../lib/api'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { API_BASE, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const initialForm = {
@@ -15,12 +15,40 @@ const initialForm = {
 }
 
 function LabReportCreatePage() {
+  const { id } = useParams()
   const navigate = useNavigate()
   const showError = useErrorRedirect()
+  const isEditMode = Boolean(id)
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    if (!isEditMode) return
+
+    const loadReport = async () => {
+      try {
+        const detail = await readJson(`${API_BASE}/api/lab-reports/${id}`)
+        setForm({
+          patientId: detail?.patientId || '',
+          requestedBy: detail?.requestedBy || '',
+          testName: detail?.testName || '',
+          result: detail?.result || '',
+          reportDate: detail?.reportDate || '',
+          requestDate: detail?.requestDate || '',
+          conductedBy: detail?.conductedBy || '',
+          labRequestId: detail?.labRequestId || '',
+        })
+      } catch (err) {
+        const message = err.message || 'Unable to load lab report details.'
+        setError(message)
+        showError(message)
+      }
+    }
+
+    loadReport()
+  }, [id, isEditMode])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -44,24 +72,17 @@ function LabReportCreatePage() {
         testNames: form.testName ? [form.testName] : [],
       }
 
-      const response = await fetch(`${API_BASE}/api/lab-reports/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(payload),
-      })
+      const url = isEditMode ? `${API_BASE}/api/lab-reports/${id}` : `${API_BASE}/api/lab-reports/create`
+      const method = isEditMode ? 'PUT' : 'POST'
+      const response = await writeJson(url, { method, body: JSON.stringify(payload) })
 
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to create lab report.')
-      }
-
-      setSuccess('Lab report created successfully.')
+      setSuccess(isEditMode ? 'Lab report updated successfully.' : 'Lab report created successfully.')
       setTimeout(() => navigate('/lab-reports'), 500)
+      if (response) {
+        console.info('Lab report save response:', response)
+      }
     } catch (err) {
-      const message = err.message || 'Unable to create lab report.'
+      const message = err.message || (isEditMode ? 'Unable to update lab report.' : 'Unable to create lab report.')
       setError(message)
       showError(message)
     } finally {
@@ -73,8 +94,8 @@ function LabReportCreatePage() {
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Lab report create</div>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Create lab report</h1>
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">{isEditMode ? 'Lab report update' : 'Lab report create'}</div>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{isEditMode ? 'Update lab report' : 'Create lab report'}</h1>
         </div>
         <Link to="/lab-reports" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
           Back to lab reports
@@ -125,7 +146,7 @@ function LabReportCreatePage() {
             Cancel
           </Link>
           <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70">
-            {saving ? 'Saving...' : 'Create report'}
+            {saving ? 'Saving...' : isEditMode ? 'Update report' : 'Create report'}
           </button>
         </div>
       </form>

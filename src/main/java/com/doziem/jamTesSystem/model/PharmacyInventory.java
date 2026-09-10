@@ -22,15 +22,14 @@ import java.util.UUID;
 public class PharmacyInventory {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pharmacy_id", nullable = false, columnDefinition = "uuid")
+    @JoinColumn(name = "pharmacy_id", nullable = false)
     private Pharmacy pharmacy;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "medication_id", nullable = false, columnDefinition = "uuid")
+    @JoinColumn(name = "medication_id", nullable = false)
     private Medication medication;
 
     @Column(nullable = false)

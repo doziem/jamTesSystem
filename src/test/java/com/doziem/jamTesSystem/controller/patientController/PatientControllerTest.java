@@ -1,6 +1,8 @@
 package com.doziem.jamTesSystem.controller.patientController;
 
+import com.doziem.jamTesSystem.dto.EncounterDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
+import com.doziem.jamTesSystem.request.EncounterStatusRequest;
 import com.doziem.jamTesSystem.service.patientService.IPatientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +22,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -103,5 +106,27 @@ class PatientControllerTest {
     void deletePatientReturnsNoContent() throws Exception {
         mockMvc.perform(delete("/api/patients/p-1"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void getPatientVisitHistoryReturnsOk() throws Exception {
+        EncounterDto dto = EncounterDto.builder().id("e-1").patientId("p-1").status("ARRIVED").build();
+
+        when(patientService.getPatientVisitHistory("p-1")).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/patients/p-1/history"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void updateEncounterStatusReturnsOk() throws Exception {
+        EncounterDto dto = EncounterDto.builder().id("e-1").patientId("p-1").status("TRIAGED").build();
+
+        when(patientService.updateEncounterStatus(eq("e-1"), any(EncounterStatusRequest.class))).thenReturn(dto);
+
+        mockMvc.perform(patch("/api/patients/encounters/e-1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new EncounterStatusRequest("TRIAGED"))))
+                .andExpect(status().isOk());
     }
 }

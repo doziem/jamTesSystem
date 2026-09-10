@@ -1,13 +1,18 @@
 # Plan
 
 ## Current status
-- Doctor and prescription CRUD/dashboard work is complete.
-- Auth login and registration tests were added and verified.
-- Patient controller/service tests were added and verified.
-- Targeted Maven verification passes on the auth and patient suites.
+- Auth, profile, and global error handling are implemented across the backend and frontend.
+- Patient identity is modeled around a stable record with a unique, memorable MRN.
+- Patient arrival and encounter creation are implemented on both the backend and frontend.
+- Patient detail view, visit history, MRN display, and triage/admission status workflow are in place.
+- Frontend and backend validation for the patient workflow pass with targeted compile/build checks.
 
-## Next steps
-- If needed, expand coverage to additional auth edge cases.
-- If a frontend dashboard is desired, consume the existing doctor dashboard API.
-- Keep using the command below to run the validation suite:
-  - .\mvnw.cmd test
+## Recommended next steps
+- Integrate department and doctor assignment more deeply into the patient detail and triage workflow.
+- Add explicit admission/discharge tracking for inpatients beyond the encounter status update flow.
+- Expand patient history to show lab, pharmacy, and billing activity on the patient detail page.
+- Continue validating with targeted frontend build and backend compile before broader test sweeps.
+
+## Validation command
+- .\mvnw.cmd -q -DskipTests compile
+- cd frontend; npm run build

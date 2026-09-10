@@ -41,6 +41,7 @@ public class AuthController {
     }
 
     @GetMapping("/verify-email")
+    @PostMapping("/verify-email")
     public ResponseEntity<ApiResponse> verifyEmail(@RequestParam String email, @RequestParam(required = false) String token) {
         try {
             return ResponseEntity.ok(authService.verifyEmail(email, token));

@@ -15,15 +15,14 @@ import java.util.UUID;
 @Builder
 public class Prescription {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id", columnDefinition = "uuid")
+    @JoinColumn(name = "patient_id")
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pharmacy_id", columnDefinition = "uuid")
+    @JoinColumn(name = "pharmacy_id")
     private Pharmacy pharmacy;
 
     @Enumerated(EnumType.STRING)

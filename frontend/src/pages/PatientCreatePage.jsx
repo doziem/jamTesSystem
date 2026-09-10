@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { API_BASE, getAuthHeaders } from '../lib/api'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { API_BASE, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const initialForm = {
@@ -19,12 +19,46 @@ const initialForm = {
 }
 
 function PatientCreatePage() {
+  const { id } = useParams()
   const navigate = useNavigate()
   const showError = useErrorRedirect()
+  const isEditMode = Boolean(id)
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    if (!isEditMode) return
+
+    const loadPatient = async () => {
+      try {
+        const payload = await readJson(`${API_BASE}/api/patients/${id}`)
+        const detail = payload?.data || payload
+        const address = detail?.address || {}
+        setForm({
+          firstName: detail?.firstName || '',
+          lastName: detail?.lastName || '',
+          email: detail?.email || '',
+          phone: detail?.phone || '',
+          dateOfBirth: detail?.dateOfBirth || '',
+          gender: detail?.gender || 'MALE',
+          street: address.street || '',
+          city: address.city || '',
+          state: address.state || '',
+          zipCode: address.zipCode || '',
+          country: address.country || '',
+          active: Boolean(detail?.active ?? true),
+        })
+      } catch (err) {
+        const message = err.message || 'Unable to load patient details.'
+        setError(message)
+        showError(message)
+      }
+    }
+
+    loadPatient()
+  }, [id, isEditMode])
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target
@@ -53,24 +87,17 @@ function PatientCreatePage() {
         },
       }
 
-      const response = await fetch(`${API_BASE}/api/patients/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(payload),
-      })
+      const url = isEditMode ? `${API_BASE}/api/patients/${id}` : `${API_BASE}/api/patients/register`
+      const method = isEditMode ? 'PUT' : 'POST'
+      const response = await writeJson(url, { method, body: JSON.stringify(payload) })
 
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to create patient.')
-      }
-
-      setSuccess('Patient created successfully.')
+      setSuccess(isEditMode ? 'Patient updated successfully.' : 'Patient created successfully.')
       setTimeout(() => navigate('/patients'), 500)
+      if (response) {
+        console.info('Patient save response:', response)
+      }
     } catch (err) {
-      const message = err.message || 'Unable to create patient.'
+      const message = err.message || (isEditMode ? 'Unable to update patient.' : 'Unable to create patient.')
       setError(message)
       showError(message)
     } finally {
@@ -82,8 +109,8 @@ function PatientCreatePage() {
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Patient create</div>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Create patient</h1>
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">{isEditMode ? 'Patient update' : 'Patient create'}</div>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{isEditMode ? 'Update patient' : 'Create patient'}</h1>
         </div>
         <Link to="/patients" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
           Back to patients
@@ -161,7 +188,7 @@ function PatientCreatePage() {
             Cancel
           </Link>
           <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70">
-            {saving ? 'Saving...' : 'Create patient'}
+            {saving ? 'Saving...' : isEditMode ? 'Update patient' : 'Create patient'}
           </button>
         </div>
       </form>

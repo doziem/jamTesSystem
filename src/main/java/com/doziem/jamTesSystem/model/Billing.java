@@ -16,11 +16,10 @@ import java.util.UUID;
 public class Billing {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @ManyToOne
-    @JoinColumn(name = "patient_id", columnDefinition = "uuid")
+    @JoinColumn(name = "patient_id")
     private Patient patient;
 
     @Column(nullable = false, columnDefinition = "numeric(19,2) default 0")

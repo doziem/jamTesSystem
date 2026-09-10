@@ -8,13 +8,13 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Setter
 @Getter
 public class PatientDto {
 
     private String id;
+    private String mrn;
     private String firstName;
     private String lastName;
     private String email;
@@ -23,6 +23,7 @@ public class PatientDto {
     private String gender;
     private Address address;
     private boolean active;
+    private List<EncounterDto> encounters = new ArrayList<>();
     private List<LabReportDto> labReports = new ArrayList<>();
     private List<PrescriptionDto> prescriptions = new ArrayList<>();
     private List<BillingDto> billingRecords = new ArrayList<>();
@@ -31,11 +32,13 @@ public class PatientDto {
     public PatientDto() {}
 
     // Parameterized Constructor
-    public PatientDto(String id, String firstName, String lastName, String email, String phone,
+    public PatientDto(String id, String mrn, String firstName, String lastName, String email, String phone,
                       LocalDate dateOfBirth, String gender, Address address, boolean active,
+                      List<EncounterDto> encounters,
                       List<LabReportDto> labReports, List<PrescriptionDto> prescriptions,
                       List<BillingDto> billingRecords) {
         this.id = id;
+        this.mrn = mrn;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -44,6 +47,7 @@ public class PatientDto {
         this.gender = gender;
         this.address = address;
         this.active = active;
+        this.encounters = encounters;
         this.labReports = labReports;
         this.prescriptions = prescriptions;
         this.billingRecords = billingRecords;

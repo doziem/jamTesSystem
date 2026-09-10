@@ -3,12 +3,15 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from
 import DashboardPage from './pages/DashboardPage'
 import PatientPage from './pages/PatientPage'
 import PatientCreatePage from './pages/PatientCreatePage'
+import PatientArrivalPage from './pages/PatientArrivalPage'
+import PatientDetailPage from './pages/PatientDetailPage'
 import DoctorPage from './pages/DoctorPage'
 import DoctorCreatePage from './pages/DoctorCreatePage'
 import PharmacyPage from './pages/PharmacyPage'
 import PharmacyCreatePage from './pages/PharmacyCreatePage'
 import BillingPage from './pages/BillingPage'
 import BillingCreatePage from './pages/BillingCreatePage'
+import LabReportPage from './pages/LabReportPage'
 import LabReportCreatePage from './pages/LabReportCreatePage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
@@ -140,6 +143,7 @@ function AppLayout({ user, onLogout, children }) {
 
           <nav className="flex flex-1 flex-col gap-1" aria-label="Sidebar navigation">
             <NavLink to="/" end className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Overview</NavLink>
+            <NavLink to="/arrival" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Patient arrival</NavLink>
             <NavLink to="/patients" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Patients</NavLink>
             <NavLink to="/doctors" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Doctors</NavLink>
             <NavLink to="/pharmacies" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Pharmacies</NavLink>
@@ -295,15 +299,21 @@ function App() {
       <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} loading={loading} error={error} />} />
       <Route path="/register" element={token ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleRegister} loading={loading} error={error} />} />
       <Route path="/" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DashboardPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/arrival" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientArrivalPage /></AppLayout></ProtectedRoute>} />
       <Route path="/patients" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/patients/:id" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientDetailPage /></AppLayout></ProtectedRoute>} />
       <Route path="/patients/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientCreatePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/patients/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/doctors" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorPage /></AppLayout></ProtectedRoute>} />
       <Route path="/doctors/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorCreatePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/doctors/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/pharmacies" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PharmacyPage /></AppLayout></ProtectedRoute>} />
       <Route path="/pharmacies/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PharmacyCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/billing" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><BillingPage /></AppLayout></ProtectedRoute>} />
       <Route path="/billing/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><BillingCreatePage /></AppLayout></ProtectedRoute>} />
-      <Route path="/lab-reports" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/lab-reports" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/lab-reports/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/lab-reports/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><ProfilePage user={user} token={token} onUserUpdate={handleUserUpdate} /></AppLayout></ProtectedRoute>} />
       <Route path="/error" element={<ErrorPage />} />
       <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />

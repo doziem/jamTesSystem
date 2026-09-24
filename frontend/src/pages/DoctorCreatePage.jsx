@@ -33,8 +33,7 @@ function DoctorCreatePage() {
         if (isEditMode) {
           const detail = await readJson(`${API_BASE}/api/doctors/${id}/single`)
           setForm({
-            firstName: detail?.firstName || '',
-            lastName: detail?.lastName || '',
+            fullName: detail?.fullName || '',
             specialization: detail?.specialization || '',
             experience: detail?.experience || 0,
             userId: detail?.userId || '',
@@ -103,14 +102,7 @@ function DoctorCreatePage() {
 
       <form className="mt-6 grid gap-5" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
-            First name
-            <input name="firstName" required value={form.firstName} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Ada" />
-          </label>
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
-            Last name
-            <input name="lastName" required value={form.lastName} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Okafor" />
-          </label>
+
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Specialization
             <input name="specialization" required value={form.specialization} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Cardiology" />
@@ -125,7 +117,7 @@ function DoctorCreatePage() {
               <option value="">Select doctor user</option>
               {doctorUsers.map((user) => (
                 <option key={user.value} value={user.value}>
-                  {user.label}
+                  {user.fullName}
                 </option>
               ))}
             </select>

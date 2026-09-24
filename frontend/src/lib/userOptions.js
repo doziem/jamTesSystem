@@ -7,6 +7,7 @@ export async function loadUsersByRole(role) {
     .map((user) => ({
       value: user.id || '',
       label: formatUserOptionLabel(user),
+        fullName: user.name || '',
     }))
 }
 

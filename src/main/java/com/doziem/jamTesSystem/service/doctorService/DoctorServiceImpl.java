@@ -48,7 +48,11 @@ public class DoctorServiceImpl implements IDoctorService{
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+
         Doctor doctor = doctorMapper.toEntity(dto, user);
+        doctor.setFullName(user.getName());
+        doctor.setEmail(user.getEmail());
+        doctor.setPhoneNumber(user.getPhone());
         return doctorMapper.toDto(doctorRepository.save(doctor));
     }
 
@@ -87,8 +91,6 @@ public class DoctorServiceImpl implements IDoctorService{
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
 
-        doctor.setFirstName(dto.getFirstName());
-        doctor.setLastName(dto.getLastName());
         doctor.setSpecialization(dto.getSpecialization());
         doctor.setExperience(dto.getExperience());
         doctor.setAvailability(dto.getAvailability());
@@ -118,7 +120,6 @@ public class DoctorServiceImpl implements IDoctorService{
 
         return DoctorDashboardDto.builder()
                 .doctorId(doctor.getId() != null ? doctor.getId().toString() : null)
-                .doctorName(doctor.getFirstName() + " " + doctor.getLastName())
                 .specialization(doctor.getSpecialization())
                 .totalPatients((int) prescriptions.stream()
                         .map(prescription -> prescription.getPatient() != null && prescription.getPatient().getId() != null ? prescription.getPatient().getId().toString() : null)

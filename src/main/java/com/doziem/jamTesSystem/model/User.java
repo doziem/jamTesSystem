@@ -48,6 +48,9 @@ public class User {
     @Column(name = "email_verification_token")
     private String emailVerificationToken;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private UserProfile profile;
+
     @PrePersist
     public void generateId() {
         if (this.id == null || this.id.isBlank()) {

@@ -302,8 +302,7 @@ public class PatienceService implements IPatientService{
         Doctor doctor = doctorRepository.findById(doctorId.trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
         encounter.setAssignedDoctorId(doctor.getId());
-        encounter.setAssignedDoctorName(((doctor.getFirstName() == null ? "" : doctor.getFirstName()) + " "
-                + (doctor.getLastName() == null ? "" : doctor.getLastName())).trim());
+        encounter.setAssignedDoctorName(doctor.getFullName());
     }
 
     private String normalizeEncounterStatus(String rawStatus) {

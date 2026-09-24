@@ -23,6 +23,12 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse(false, ex.getMessage()));
     }
 
+    @ExceptionHandler({CustomException.class})
+    public ResponseEntity<ApiResponse> handleCustomException(CustomException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(false, ex.getMessage()));
+    }
+
     @ExceptionHandler({InvalidResourceException.class, IllegalArgumentException.class, MissingServletRequestParameterException.class})
     public ResponseEntity<ApiResponse> handleBadRequest(Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

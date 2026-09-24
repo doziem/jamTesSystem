@@ -10,11 +10,11 @@ public class DoctorMapper {
     public DoctorDto toDto(Doctor doctor) {
         return DoctorDto.builder()
                 .id(doctor.getId())
-                .firstName(doctor.getFirstName())
-                .lastName(doctor.getLastName())
-                .fullName(((doctor.getFirstName() == null ? "" : doctor.getFirstName()) + " " + (doctor.getLastName() == null ? "" : doctor.getLastName())).trim())
+                .fullName(doctor.getUser() != null ? doctor.getUser().getName(): null)
                 .specialization(doctor.getSpecialization())
                 .experience(doctor.getExperience())
+                .email(doctor.getUser() != null ? doctor.getUser().getEmail() : null)
+                .phoneNumber(doctor.getUser() != null ? doctor.getUser().getPhone() : null)
                 .userId(doctor.getUser() != null ? doctor.getUser().getId() : null)
                 .availability(doctor.getAvailability())
                 .build();
@@ -23,8 +23,6 @@ public class DoctorMapper {
     public Doctor toEntity(DoctorDto dto, User user) {
         return Doctor.builder()
                 .id(dto.getId())
-                .firstName(dto.getFirstName())
-                .lastName(dto.getLastName())
                 .specialization(dto.getSpecialization())
                 .experience(dto.getExperience())
                 .user(user)

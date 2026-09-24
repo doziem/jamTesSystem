@@ -1,17 +1,27 @@
 package com.doziem.jamTesSystem.service.userService;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.doziem.jamTesSystem.dto.UserDto;
+import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
+import com.doziem.jamTesSystem.mapper.ProfileMapper;
 import com.doziem.jamTesSystem.model.User;
 import com.doziem.jamTesSystem.mapper.UserMapper;
+import com.doziem.jamTesSystem.model.UserProfile;
+import com.doziem.jamTesSystem.repository.UserProfileRepository;
 import com.doziem.jamTesSystem.repository.UserRepository;
+import com.doziem.jamTesSystem.request.ProfileRequest;
+import com.doziem.jamTesSystem.response.ProfileResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -21,6 +31,7 @@ public class UserServiceImpl implements IUserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final UserProfileRepository profileRepository;
 
     @Override
     public List<UserDto> getAllUsers() {
@@ -103,6 +114,33 @@ public class UserServiceImpl implements IUserService {
     public boolean isAdmin(Authentication authentication) {
         return authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+
+    @Override
+    public ProfileResponse createProfileResponse(String userId, ProfileRequest request) throws IOException {
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (profileRepository.existsByUserId(userId)) {
+            throw new RuntimeException("Profile already exists");
+        }
+
+        //use Cloudinary to upload the image and get the URL
+        Cloudinary cloudinary = new Cloudinary();
+        Map uploadResult = cloudinary.uploader().upload(request.getProfileImageUrl().getBytes(), ObjectUtils.emptyMap());
+        String imageUrl = (String) uploadResult.get("url");
+
+        request.setProfileImageUrl(imageUrl);
+        UserProfile profile = ProfileMapper.toEntity(request, user);
+        profileRepository.save(profile);
+        return ProfileMapper.toResponse(profile);
+    }
+
+    @Override
+    public ProfileResponse getProfileResponse(String userId, Authentication authentication) {
+        UserProfile profile = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
+        return ProfileMapper.toResponse(profile);
     }
 
     private boolean isCurrentUser(String id, Authentication authentication) {

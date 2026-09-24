@@ -47,8 +47,7 @@ function DoctorPage() {
     } catch (err) {
       const message = err.message || 'Unable to fetch doctor details.'
       setSelectedDoctor({
-        firstName: doctor.firstName || '',
-        lastName: doctor.lastName || '',
+        fullName: doctor.fullName || '',
         error: message,
       })
       showError(message)
@@ -60,7 +59,7 @@ function DoctorPage() {
   const detailFields = selectedDoctor
     ? [
         ['ID', selectedDoctor.id || selectedDoctor.doctorId || 'N/A'],
-        ['Full name', [selectedDoctor.firstName, selectedDoctor.lastName].filter(Boolean).join(' ') || 'N/A'],
+        ['Full name', selectedDoctor?.fullName || 'N/A'],
         ['Specialization', selectedDoctor.specialization || selectedDoctor.specialty || 'N/A'],
         ['Experience', selectedDoctor.experience ? `${selectedDoctor.experience} years` : 'N/A'],
         ['Availability', selectedDoctor.availability || 'N/A'],
@@ -87,9 +86,9 @@ function DoctorPage() {
       {!loading && !error ? (
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {doctors.length > 0 ? doctors.map((doctor, index) => {
-            const name = doctor.name || doctor.fullName || [doctor.firstName, doctor.lastName].filter(Boolean).join(' ') || `Doctor ${index + 1}`
-            const specialty = doctor.specialty || doctor.specialization || doctor.department || 'General Practice'
-            const email = doctor.email || 'N/A'
+            const name = doctor?.fullName || `Doctor`
+            const specialty = doctor?.specialty || doctor?.specialization || doctor?.department || 'General Practice'
+            const email = doctor?.email || 'N/A'
             const doctorId = doctor.id || doctor.doctorId
 
             return (
@@ -98,6 +97,7 @@ function DoctorPage() {
                   <div>
                     <strong className="block text-base font-semibold text-slate-900">{name}</strong>
                     <span className="mt-1 block text-sm text-slate-600">{specialty}</span>
+                    <span className="mt-1 block text-sm text-slate-600">{doctor?.availability}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Link to={`/doctors/${doctorId}/edit`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
@@ -108,7 +108,6 @@ function DoctorPage() {
                     </button>
                   </div>
                 </div>
-                <small className="mt-3 block text-sm text-slate-500">{email}</small>
               </div>
             )
           }) : <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">No doctor records available.</div>}
@@ -117,7 +116,7 @@ function DoctorPage() {
 
       <DetailModal
         isOpen={Boolean(selectedDoctor)}
-        title={[selectedDoctor?.firstName, selectedDoctor?.lastName].filter(Boolean).join(' ') || 'Doctor details'}
+        title={selectedDoctor?.fullName || 'Doctor details'}
         fields={detailFields}
         loading={detailLoading}
         onClose={() => setSelectedDoctor(null)}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { API_BASE, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
+import { loadUsersByRole } from '../lib/userOptions'
 
 const initialForm = {
   firstName: '',
@@ -21,29 +22,33 @@ function DoctorCreatePage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [doctorUsers, setDoctorUsers] = useState([])
 
   useEffect(() => {
-    if (!isEditMode) return
-
-    const loadDoctor = async () => {
+    const loadPage = async () => {
       try {
-        const detail = await readJson(`${API_BASE}/api/doctors/${id}/single`)
-        setForm({
-          firstName: detail?.firstName || '',
-          lastName: detail?.lastName || '',
-          specialization: detail?.specialization || '',
-          experience: detail?.experience || 0,
-          userId: detail?.userId || '',
-          availability: detail?.availability || '',
-        })
+        const users = await loadUsersByRole('DOCTOR')
+        setDoctorUsers(users)
+
+        if (isEditMode) {
+          const detail = await readJson(`${API_BASE}/api/doctors/${id}/single`)
+          setForm({
+            firstName: detail?.firstName || '',
+            lastName: detail?.lastName || '',
+            specialization: detail?.specialization || '',
+            experience: detail?.experience || 0,
+            userId: detail?.userId || '',
+            availability: detail?.availability || '',
+          })
+        }
       } catch (err) {
-        const message = err.message || 'Unable to load doctor details.'
+        const message = err.message || (isEditMode ? 'Unable to load doctor details.' : 'Unable to load doctor users.')
         setError(message)
         showError(message)
       }
     }
 
-    loadDoctor()
+    loadPage()
   }, [id, isEditMode])
 
   const handleChange = (event) => {
@@ -116,7 +121,14 @@ function DoctorCreatePage() {
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-2">
             User ID
-            <input name="userId" value={form.userId} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="user-uuid" />
+            <select name="userId" required value={form.userId} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
+              <option value="">Select doctor user</option>
+              {doctorUsers.map((user) => (
+                <option key={user.value} value={user.value}>
+                  {user.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-2">
             Availability

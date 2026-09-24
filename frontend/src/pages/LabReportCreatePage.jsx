@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { API_BASE, readJson, writeJson } from '../lib/api'
+import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
+import { loadUsersByRole } from '../lib/userOptions'
 
 const initialForm = {
   patientId: '',
@@ -23,31 +24,40 @@ function LabReportCreatePage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [doctors, setDoctors] = useState([])
+  const [labScientistUsers, setLabScientistUsers] = useState([])
 
   useEffect(() => {
-    if (!isEditMode) return
-
-    const loadReport = async () => {
+    const loadPage = async () => {
       try {
-        const detail = await readJson(`${API_BASE}/api/lab-reports/${id}`)
-        setForm({
-          patientId: detail?.patientId || '',
-          requestedBy: detail?.requestedBy || '',
-          testName: detail?.testName || '',
-          result: detail?.result || '',
-          reportDate: detail?.reportDate || '',
-          requestDate: detail?.requestDate || '',
-          conductedBy: detail?.conductedBy || '',
-          labRequestId: detail?.labRequestId || '',
-        })
+        const [doctorPayload, labScientists] = await Promise.all([
+          readJson(`${API_BASE}/api/patients/doctors/assignable`),
+          loadUsersByRole('LAB_SCIENTIST'),
+        ])
+        setDoctors(normalizeList(doctorPayload))
+        setLabScientistUsers(labScientists)
+
+        if (isEditMode) {
+          const detail = await readJson(`${API_BASE}/api/lab-reports/${id}`)
+          setForm({
+            patientId: detail?.patientId || '',
+            requestedBy: detail?.requestedBy || '',
+            testName: detail?.testName || '',
+            result: detail?.result || '',
+            reportDate: detail?.reportDate || '',
+            requestDate: detail?.requestDate || '',
+            conductedBy: detail?.conductedBy || '',
+            labRequestId: detail?.labRequestId || '',
+          })
+        }
       } catch (err) {
-        const message = err.message || 'Unable to load lab report details.'
+        const message = err.message || (isEditMode ? 'Unable to load lab report details.' : 'Unable to load assignable users.')
         setError(message)
         showError(message)
       }
     }
 
-    loadReport()
+    loadPage()
   }, [id, isEditMode])
 
   const handleChange = (event) => {
@@ -110,7 +120,14 @@ function LabReportCreatePage() {
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Requested by
-            <input name="requestedBy" required value={form.requestedBy} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="doctor-uuid" />
+            <select name="requestedBy" required value={form.requestedBy} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
+              <option value="">Select doctor</option>
+              {doctors.map((doctor) => (
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.fullName || [doctor.firstName, doctor.lastName].filter(Boolean).join(' ') || doctor.id}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Test name
@@ -118,7 +135,14 @@ function LabReportCreatePage() {
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Conducted by
-            <input name="conductedBy" value={form.conductedBy} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="lab technician" />
+            <select name="conductedBy" value={form.conductedBy} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
+              <option value="">Select lab scientist user</option>
+              {labScientistUsers.map((user) => (
+                <option key={user.value} value={user.value}>
+                  {user.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-2">
             Result

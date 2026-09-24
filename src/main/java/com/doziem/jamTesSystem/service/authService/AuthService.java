@@ -82,8 +82,7 @@ public class AuthService implements IAuthService{
         if (existingUser.isPresent()) {
             throw new IllegalArgumentException("Email already registered");
         }
-
-        User user = userMapper.toEntity(dto, dto.getPassword(), passwordEncoder);
+         User user = userMapper.toEntity(dto, dto.getPassword(), passwordEncoder);
         user.setVerified(false);
         user.setEmailVerificationToken(UUID.randomUUID().toString());
         User savedUser = userRepository.save(user);

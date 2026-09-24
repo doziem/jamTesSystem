@@ -50,6 +50,7 @@ public class PatienceService implements IPatientService{
     private final BillingMapper billingMapper;
     private final LabReportMapper labReportMapper;
     private final PrescriptionMapper prescriptionMapper;
+
     private PatientMapper patientMapper = new PatientMapper(
             new BillingMapper(),
             new LabReportMapper(),

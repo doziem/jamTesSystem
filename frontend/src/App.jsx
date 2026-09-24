@@ -16,9 +16,7 @@ import LabReportCreatePage from './pages/LabReportCreatePage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import ErrorPage from './pages/ErrorPage'
-import { API_BASE, STORAGE_KEY, writeJson } from './lib/api'
-
-const USER_STORAGE_KEY = 'jamtes-auth-user'
+import { API_BASE, STORAGE_KEY, USER_STORAGE_KEY, writeJson } from './lib/api'
 
 async function loginUser({ identifier, password }) {
   const response = await fetch(`${API_BASE}/auth/login`, {
@@ -36,7 +34,7 @@ function LoginPage({ onLogin, loading, error }) {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const location = useLocation()
-  const successMessage = location.state?.message || ''
+  const successMessage = location.state?.message || new URLSearchParams(location.search).get('message') || ''
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">

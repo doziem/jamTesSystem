@@ -16,7 +16,7 @@ import LabReportCreatePage from './pages/LabReportCreatePage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import ErrorPage from './pages/ErrorPage'
-import { API_BASE, STORAGE_KEY, USER_STORAGE_KEY, writeJson } from './lib/api'
+import { API_BASE, STORAGE_KEY, USER_STORAGE_KEY, getStoredToken, writeJson } from './lib/api'
 
 async function loginUser({ identifier, password }) {
   const response = await fetch(`${API_BASE}/auth/login`, {
@@ -233,7 +233,7 @@ function AppLayout({ user, onLogout, children }) {
 }
 
 function App() {
-  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY) || '')
+  const [token, setToken] = useState(getStoredToken)
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem(USER_STORAGE_KEY)
     return savedUser ? JSON.parse(savedUser) : null

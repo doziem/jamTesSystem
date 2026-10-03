@@ -16,4 +16,5 @@ public interface PharmacyRepository extends JpaRepository<Pharmacy, String> {
     List<Pharmacy> findByMainPharmacyRefId(String mainPharmacyId);
     Optional<Pharmacy> findByName(String name);
     Page<Pharmacy> findAll(Pageable pageable);
+
 }

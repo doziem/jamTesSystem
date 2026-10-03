@@ -44,19 +44,19 @@ class DoctorControllerTest {
     @Test
     void createDoctorReturnsCreatedDoctor() throws Exception {
         when(doctorService.createDoctor(any(DoctorDto.class)))
-                .thenReturn(DoctorDto.builder().id("d-1").firstName("John").lastName("Doe").build());
+                .thenReturn(DoctorDto.builder().id("d-1").fullName("John Doe").build());
 
         mockMvc.perform(post("/api/doctors/register-doctor")
                 .with(user("admin").roles("ADMIN"))
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"firstName\":\"John\",\"lastName\":\"Doe\"}"))
+                .content("{\"fullName\":\"John Doe\"}"))
         .andExpect(status().isOk());
     }
 
     @Test
     void getAllDoctorsReturnsList() throws Exception {
-        when(doctorService.getAllDoctors()).thenReturn(List.of(DoctorDto.builder().id("d-1").firstName("John").build()));
+        when(doctorService.getAllDoctors()).thenReturn(List.of(DoctorDto.builder().id("d-1").fullName("John").build()));
 
         mockMvc.perform(get("/api/doctors/all").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk());
@@ -64,7 +64,7 @@ class DoctorControllerTest {
 
     @Test
     void getDoctorByIdReturnsDoctor() throws Exception {
-        when(doctorService.getDoctorById("d-1")).thenReturn(DoctorDto.builder().id("d-1").firstName("John").build());
+        when(doctorService.getDoctorById("d-1")).thenReturn(DoctorDto.builder().id("d-1").fullName("John").build());
 
         mockMvc.perform(get("/api/doctors/d-1/single").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk());
@@ -73,13 +73,13 @@ class DoctorControllerTest {
     @Test
     void updateDoctorReturnsUpdatedDoctor() throws Exception {
         when(doctorService.updateDoctor(eq("d-1"), any(DoctorDto.class)))
-                .thenReturn(DoctorDto.builder().id("d-1").firstName("Jane").build());
+                .thenReturn(DoctorDto.builder().id("d-1").fullName("Jane").build());
 
         mockMvc.perform(put("/api/doctors/d-1/update")
                         .with(user("admin").roles("ADMIN"))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"firstName\":\"Jane\"}"))
+                        .content("{\"fullName\":\"Jane\"}"))
                 .andExpect(status().isOk());
     }
 

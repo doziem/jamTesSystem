@@ -3,8 +3,27 @@ export const STORAGE_KEY = 'jamtes-auth-token'
 export const USER_STORAGE_KEY = 'jamtes-auth-user'
 const EXPIRED_TOKEN_MESSAGE = 'Token expired'
 
+function isTokenExpired(token) {
+  const payload = token.split('.')[1]
+  if (!payload) return false
+
+  try {
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const claims = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')))
+    return typeof claims.exp === 'number' && claims.exp * 1000 <= Date.now()
+  } catch {
+    return false
+  }
+}
+
 export function getStoredToken() {
-  return localStorage.getItem(STORAGE_KEY) || ''
+  const token = localStorage.getItem(STORAGE_KEY) || ''
+  if (token && isTokenExpired(token)) {
+    redirectToLogin(EXPIRED_TOKEN_MESSAGE)
+    return ''
+  }
+
+  return token
 }
 
 export function getAuthHeaders(token = getStoredToken()) {
@@ -36,8 +55,10 @@ function redirectToLogin(message) {
 function handleUnauthorizedResponse(response, payload) {
   const message = typeof payload === 'string' ? payload : payload?.message || 'Your session has expired. Please log in again.'
   const normalizedMessage = message.toLowerCase()
+  const token = localStorage.getItem(STORAGE_KEY) || ''
+  const tokenExpired = isTokenExpired(token)
 
-  if (response.status === 401 || normalizedMessage.includes('token expired') || normalizedMessage.includes('jwt expired')) {
+  if (response.status === 401 || tokenExpired || normalizedMessage.includes('token expired') || normalizedMessage.includes('jwt expired')) {
     redirectToLogin(EXPIRED_TOKEN_MESSAGE)
     throw new Error(message)
   }

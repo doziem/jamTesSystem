@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 import { loadUsersByRole } from '../lib/userOptions'
@@ -7,18 +7,31 @@ import { loadUsersByRole } from '../lib/userOptions'
 const initialForm = {
   patientId: '',
   requestedBy: '',
-  testName: '',
-  result: '',
+  selectedTestName: '',
+  selectedTestResult: '',
+  testResults: [],
   reportDate: '',
   requestDate: '',
   conductedBy: '',
   labRequestId: '',
 }
 
+const availableTests = [
+  'Complete Blood Count (CBC)',
+  'Urinalysis',
+  'Blood Glucose',
+  'Liver Function Test',
+  'Kidney Function Test',
+  'Lipid Profile',
+  'Malaria Parasite',
+  'Widal Test',
+]
+
 function LabReportCreatePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const showError = useErrorRedirect()
+  const [searchParams] = useSearchParams()
   const isEditMode = Boolean(id)
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
@@ -26,6 +39,26 @@ function LabReportCreatePage() {
   const [success, setSuccess] = useState('')
   const [doctors, setDoctors] = useState([])
   const [labScientistUsers, setLabScientistUsers] = useState([])
+
+  const handleAddTestResult = () => {
+    const testName = form.selectedTestName.trim()
+    const result = form.selectedTestResult.trim()
+    if (!testName) {
+      setError('Please select a test name.')
+      return
+    }
+    if (!result) {
+      setError('Please enter a result for the selected test.')
+      return
+    }
+    setForm((prev) => ({
+      ...prev,
+      testResults: [...prev.testResults, { id: Date.now(), testName, result }],
+      selectedTestName: '',
+      selectedTestResult: '',
+    }))
+    setError('')
+  }
 
   useEffect(() => {
     const loadPage = async () => {
@@ -42,13 +75,25 @@ function LabReportCreatePage() {
           setForm({
             patientId: detail?.patientId || '',
             requestedBy: detail?.requestedBy || '',
-            testName: detail?.testName || '',
-            result: detail?.result || '',
+            selectedTestName: '',
+            selectedTestResult: '',
+            testResults: Array.isArray(detail?.testResults) ? detail.testResults : [],
             reportDate: detail?.reportDate || '',
             requestDate: detail?.requestDate || '',
             conductedBy: detail?.conductedBy || '',
             labRequestId: detail?.labRequestId || '',
           })
+        } else {
+          const prefilledPatientId = searchParams.get('patientId')
+          const prefilledRequestedBy = searchParams.get('requestedBy')
+          if (prefilledPatientId || prefilledRequestedBy) {
+            setForm((prev) => ({
+              ...prev,
+              patientId: prefilledPatientId || prev.patientId,
+              requestedBy: prefilledRequestedBy || prev.requestedBy,
+              requestDate: prev.requestDate || new Date().toISOString().slice(0, 10),
+            }))
+          }
         }
       } catch (err) {
         const message = err.message || (isEditMode ? 'Unable to load lab report details.' : 'Unable to load assignable users.')
@@ -75,11 +120,21 @@ function LabReportCreatePage() {
     setSuccess('')
 
     try {
+      if (form.testResults.length === 0) {
+        throw new Error('Please attach at least one test with result.')
+      }
       const payload = {
-        ...form,
+        patientId: form.patientId,
+        requestedBy: form.requestedBy,
+        conductedBy: form.conductedBy || null,
+        labRequestId: form.labRequestId || null,
         reportDate: form.reportDate || null,
         requestDate: form.requestDate || null,
-        testNames: form.testName ? [form.testName] : [],
+        testResults: form.testResults.map((item) => ({
+          id: item.id,
+          testName: item.testName,
+          result: item.result,
+        })),
       }
 
       const url = isEditMode ? `${API_BASE}/api/lab-reports/${id}` : `${API_BASE}/api/lab-reports/create`
@@ -90,6 +145,40 @@ function LabReportCreatePage() {
       setTimeout(() => navigate('/lab-reports'), 500)
       if (response) {
         console.info('Lab report save response:', response)
+      }
+
+      const handleAddTestResult = () => {
+        const testName = form.selectedTestName.trim()
+        const result = form.selectedTestResult.trim()
+        if (!testName) {
+          setError('Please select a test name.')
+          return
+        }
+        if (!result) {
+          setError('Please enter a result for the selected test.')
+          return
+        }
+
+        const duplicate = form.testResults.some((item) => item.testName.toLowerCase() === testName.toLowerCase())
+        if (duplicate) {
+          setError('This test is already attached. Remove it first to change the result.')
+          return
+        }
+
+        setError('')
+        setForm((prev) => ({
+          ...prev,
+          selectedTestName: '',
+          selectedTestResult: '',
+          testResults: [...prev.testResults, { testName, result }],
+        }))
+      }
+
+      const handleRemoveTestResult = (testName) => {
+        setForm((prev) => ({
+          ...prev,
+          testResults: prev.testResults.filter((item) => item.testName !== testName),
+        }))
       }
     } catch (err) {
       const message = err.message || (isEditMode ? 'Unable to update lab report.' : 'Unable to create lab report.')
@@ -131,7 +220,14 @@ function LabReportCreatePage() {
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Test name
-            <input name="testName" required value={form.testName} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="CBC" />
+            <select name="selectedTestName" value={form.selectedTestName} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
+              <option value="">Select a test</option>
+              {availableTests.map((testName) => (
+                <option key={testName} value={testName}>
+                  {testName}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Conducted by
@@ -146,8 +242,33 @@ function LabReportCreatePage() {
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-2">
             Result
-            <textarea name="result" required value={form.result} onChange={handleChange} className="min-h-28 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Normal range..." />
+            <textarea name="selectedTestResult" value={form.selectedTestResult} onChange={handleChange} className="min-h-28 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Result for selected test..." />
           </label>
+          <div className="md:col-span-2">
+            <button type="button" onClick={handleAddTestResult} className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+              Attach test result
+            </button>
+          </div>
+          <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-700">Attached tests and results</p>
+            {form.testResults.length > 0 ? (
+              <div className="mt-3 grid gap-2">
+                {form.testResults.map((item) => (
+                  <div key={item.testName} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{item.testName}</p>
+                      <p className="text-sm text-slate-600">{item.result}</p>
+                    </div>
+                    <button type="button" onClick={() => handleRemoveTestResult(item.testName)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">No tests attached yet.</p>
+            )}
+          </div>
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Request date
             <input type="date" name="requestDate" value={form.requestDate} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" />

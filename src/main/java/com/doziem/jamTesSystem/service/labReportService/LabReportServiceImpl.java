@@ -2,12 +2,16 @@ package com.doziem.jamTesSystem.service.labReportService;
 
 import com.doziem.jamTesSystem.constant.Role;
 import com.doziem.jamTesSystem.dto.LabReportDto;
+import com.doziem.jamTesSystem.dto.LabTestResultDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
 import com.doziem.jamTesSystem.mapper.LabReportMapper;
+import com.doziem.jamTesSystem.model.LabReportEntry;
+import com.doziem.jamTesSystem.model.LabRequest;
 import com.doziem.jamTesSystem.model.LabReport;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.model.User;
+import com.doziem.jamTesSystem.repository.LabRequestRepository;
 import com.doziem.jamTesSystem.repository.LabReportRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
 import com.doziem.jamTesSystem.repository.UserRepository;
@@ -15,6 +19,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +27,7 @@ import java.util.stream.Collectors;
 public class LabReportServiceImpl implements ILabReportService{
 
     private final LabReportRepository labReportRepository;
+    private final LabRequestRepository labRequestRepository;
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
     private final LabReportMapper labReportMapper;
@@ -40,8 +46,16 @@ public class LabReportServiceImpl implements ILabReportService{
             throw new UserNotAllowedException("Only a Doctor can request a test");
         }
 
-        LabReport labReport = labReportMapper.toEntity(dto, patient, null);
+        LabRequest labRequest = dto.getLabRequestId() == null || dto.getLabRequestId().isBlank()
+                ? null
+                : labRequestRepository.findById(UUID.fromString(dto.getLabRequestId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Lab request not found"));
+
+        validateTestResults(dto.getTestResults(), false);
+
+        LabReport labReport = labReportMapper.toEntity(dto, patient, labRequest);
         labReport.setPatient(patient);
+        labReport.setTestResults(mapTestResults(dto.getTestResults(), labReport));
 
         return labReportMapper.toDto(labReportRepository.save(labReport));
     }
@@ -108,22 +122,22 @@ public class LabReportServiceImpl implements ILabReportService{
         LabReport labReport = labReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lab Report not found"));
 
-        if (dto.getResult() != null && !dto.getResult().isBlank()) {
-            if (dto.getConductedBy() == null) {
-                throw new UserNotAllowedException("Only a Lab Scientist can submit the lab result");
-            }
-
-            User user = userRepository.findById(dto.getConductedBy())
-                    .orElseThrow(() -> new ResourceNotFoundException("Lab scientist not found"));
-
-            if (user.getRole() != Role.LAB_SCIENTIST) {
-                throw new UserNotAllowedException("Only a Lab Scientist is allowed to send a lab result");
-            }
+        if (dto.getConductedBy() != null && !dto.getConductedBy().isBlank()) {
+            validateLabScientist(dto.getConductedBy());
         }
 
-        labReport.setTestName(dto.getTestName() != null ? dto.getTestName() : labReport.getTestName());
-        labReport.setResult(dto.getResult() != null ? dto.getResult() : labReport.getResult());
+        if (dto.getTestResults() != null && !dto.getTestResults().isEmpty()) {
+            if (dto.getConductedBy() == null || dto.getConductedBy().isBlank()) {
+                throw new UserNotAllowedException("Only a Lab Scientist can submit the lab result");
+            }
+            validateLabScientist(dto.getConductedBy());
+            validateTestResults(dto.getTestResults(), true);
+            labReport.getTestResults().clear();
+            labReport.getTestResults().addAll(mapTestResults(dto.getTestResults(), labReport));
+        }
+
         labReport.setReportDate(dto.getReportDate() != null ? dto.getReportDate() : labReport.getReportDate());
+        labReport.setRequestDate(dto.getRequestDate() != null ? dto.getRequestDate() : labReport.getRequestDate());
         labReport.setConductedBy(dto.getConductedBy() != null ? dto.getConductedBy() : labReport.getConductedBy());
 
         return labReportMapper.toDto(labReportRepository.save(labReport));
@@ -138,4 +152,41 @@ public class LabReportServiceImpl implements ILabReportService{
         labReportRepository.delete(labReport);
     }
 
+    private void validateLabScientist(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lab scientist not found"));
+
+        if (user.getRole() != Role.LAB_SCIENTIST) {
+            throw new UserNotAllowedException("Only a Lab Scientist is allowed to send a lab result");
+        }
+    }
+
+    private void validateTestResults(List<LabTestResultDto> testResults, boolean enforceResults) {
+        if (testResults == null || testResults.isEmpty()) {
+            throw new UserNotAllowedException("At least one test with result is required");
+        }
+
+        for (LabTestResultDto item : testResults) {
+            if (item == null || item.getTestName() == null || item.getTestName().isBlank()) {
+                throw new UserNotAllowedException("Each test entry must include a test name");
+            }
+            if (enforceResults && (item.getResult() == null || item.getResult().isBlank())) {
+                throw new UserNotAllowedException("Each selected test must include a result");
+            }
+            if (!enforceResults && (item.getResult() == null || item.getResult().isBlank())) {
+                throw new UserNotAllowedException("Each selected test must include a result");
+            }
+        }
+    }
+
+    private List<LabReportEntry> mapTestResults(List<LabTestResultDto> testResults, LabReport labReport) {
+        return testResults.stream()
+                .map(item -> LabReportEntry.builder()
+                        .id(item.getId())
+                        .labReport(labReport)
+                        .testName(item.getTestName().trim())
+                        .result(item.getResult().trim())
+                        .build())
+                .collect(Collectors.toList());
+    }
 }

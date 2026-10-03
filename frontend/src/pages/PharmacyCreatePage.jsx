@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { API_BASE, getAuthHeaders } from '../lib/api'
+import { API_BASE, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const departmentOptions = ['MAIN_PHARMACY', 'GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
@@ -47,19 +47,10 @@ function PharmacyCreatePage() {
       }
 
       const endpoint = form.mainPharmacy ? `${API_BASE}/api/pharmacies/main` : `${API_BASE}/api/pharmacies/${form.mainPharmacyId}/department`
-      const response = await fetch(endpoint, {
+      await writeJson(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
         body: JSON.stringify(payload),
       })
-
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to create pharmacy.')
-      }
 
       setSuccess('Pharmacy created successfully.')
       setTimeout(() => navigate('/pharmacies'), 500)

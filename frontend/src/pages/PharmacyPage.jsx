@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function PharmacyPage() {
@@ -115,21 +115,12 @@ function PharmacyPage() {
     setReorderStatus('')
 
     try {
-      const response = await fetch(
+      await writeJson(
         `${API_BASE}/api/pharmacies/${pharmacyId}/medications/${medicationId}/stock?quantity=${requestQuantity}`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         },
       )
-
-      const data = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to create reorder request.')
-      }
 
       setReorderStatus(`Reorder request sent for ${item.medicationName || 'medication'} (${requestQuantity} units).`)
 

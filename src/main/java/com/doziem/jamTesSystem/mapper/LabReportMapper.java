@@ -1,6 +1,8 @@
 package com.doziem.jamTesSystem.mapper;
 
 import com.doziem.jamTesSystem.dto.LabReportDto;
+import com.doziem.jamTesSystem.dto.LabTestResultDto;
+import com.doziem.jamTesSystem.model.LabReportEntry;
 import com.doziem.jamTesSystem.model.LabRequest;
 import com.doziem.jamTesSystem.model.LabReport;
 import com.doziem.jamTesSystem.model.Patient;
@@ -13,8 +15,6 @@ public class LabReportMapper {
                 .id(dto.getId())
                 .patient(patient)
                 .labRequest(labRequest)
-                .testName(dto.getTestName())
-                .result(dto.getResult())
                 .reportDate(dto.getReportDate())
                 .requestDate(dto.getRequestDate())
                 .conductedBy(dto.getConductedBy())
@@ -29,12 +29,23 @@ public class LabReportMapper {
                 .id(labReport.getId() != null ? labReport.getId().toString() : null)
                 .patientId(labReport.getPatient() != null && labReport.getPatient().getId() != null ? labReport.getPatient().getId().toString() : null)
                 .requestedBy(labReport.getLabRequest().getRequestedBy().getId() != null ? labReport.getLabRequest().getRequestedBy().getId().toString() : null)
-                .testName(labReport.getTestName())
-                .result(labReport.getResult())
                 .reportDate(labReport.getReportDate())
                 .requestDate(labReport.getRequestDate())
                 .conductedBy(labReport.getConductedBy())
                 .labRequestId(labReport.getLabRequest().getId() != null ? labReport.getLabRequest().getId().toString() : null)
+                .testResults(
+                        labReport.getTestResults().stream()
+                                .map(this::toLabTestResultDto)
+                                .toList()
+                )
+                .build();
+    }
+
+    private LabTestResultDto toLabTestResultDto(LabReportEntry entry) {
+        return LabTestResultDto.builder()
+                .id(entry.getId())
+                .testName(entry.getTestName())
+                .result(entry.getResult())
                 .build();
     }
 }

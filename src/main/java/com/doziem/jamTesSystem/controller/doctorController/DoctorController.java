@@ -3,11 +3,13 @@ package com.doziem.jamTesSystem.controller.doctorController;
 
 import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.dto.DoctorDashboardDto;
+import com.doziem.jamTesSystem.dto.DoctorPatientVisitDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
 import com.doziem.jamTesSystem.service.doctorService.IDoctorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,6 +37,29 @@ public class DoctorController {
     @GetMapping("/{id}/single")
     public ResponseEntity<DoctorDto> getDoctorById(@PathVariable String id) {
         return ResponseEntity.ok(doctorService.getDoctorById(id));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<DoctorDto> getCurrentDoctor(Authentication authentication) {
+        try {
+            return ResponseEntity.ok(doctorService.getCurrentDoctor(authentication));
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{id}/patients")
+    public ResponseEntity<List<DoctorPatientVisitDto>> getAssignedPatients(@PathVariable String id) {
+        try {
+            return ResponseEntity.ok(doctorService.getAssignedPatients(id));
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/patients/all")
+    public ResponseEntity<List<DoctorPatientVisitDto>> getAllAssignedPatients() {
+        return ResponseEntity.ok(doctorService.getAllAssignedPatients());
     }
 
     @PutMapping("/{id}/update")

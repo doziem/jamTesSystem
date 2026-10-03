@@ -27,10 +27,13 @@ public class Medication {
 
     private String category;
 
-    @Column(nullable = false, columnDefinition = "numeric(19,2) default 0")
-    private BigDecimal unitPrice;
+    @Builder.Default
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal unitPrice = BigDecimal.ZERO;
 
     private boolean active = true;
+
+    private int quantity;
 
     @PrePersist
     public void generateId() {

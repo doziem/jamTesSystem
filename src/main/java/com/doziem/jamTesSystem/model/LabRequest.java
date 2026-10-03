@@ -21,7 +21,7 @@ import java.util.UUID;
 @Table(name = "lab_request")
 public class LabRequest {
     @Id
-    private String id;
+    private UUID id;
 
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
@@ -38,8 +38,8 @@ public class LabRequest {
 
     @PrePersist
     public void generateId() {
-        if (this.id == null || this.id.isBlank()) {
-            this.id = UUID.randomUUID().toString();
+        if (this.id == null) {
+            this.id = UUID.randomUUID();
         }
     }
 }

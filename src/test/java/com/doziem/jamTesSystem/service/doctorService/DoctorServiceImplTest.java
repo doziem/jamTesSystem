@@ -60,8 +60,7 @@ class DoctorServiceImplTest {
     void createDoctorSavesMappedEntity() {
         DoctorDto dto = DoctorDto.builder()
                 .userId("u-1")
-                .firstName("John")
-                .lastName("Doe")
+                .fullName("John Doe")
                 .build();
 
         User user = User.builder()
@@ -69,8 +68,7 @@ class DoctorServiceImplTest {
 
         Doctor doctor = Doctor.builder()
                 .id("d-1")
-                .firstName("John")
-                .lastName("Doe")
+                .fullName("John Doe")
                 .build();
 
         when(userRepository.findById("u-1")).thenReturn(Optional.of(user));
@@ -78,22 +76,20 @@ class DoctorServiceImplTest {
         when(doctorRepository.save(doctor)).thenReturn(doctor);
         when(doctorMapper.toDto(doctor)).thenReturn(DoctorDto.builder()
                 .id("d-1")
-                .firstName("John")
-                .lastName("Doe")
+                .fullName("John Doe")
                 .build());
 
         DoctorDto result = doctorService.createDoctor(dto);
 
         assertEquals("d-1", result.getId());
-        assertEquals("John", result.getFirstName());
-        assertEquals("Doe",result.getLastName());
+        assertEquals("John Doe", result.getFullName());
     }
 
     @Test
     void getAllDoctorsReturnsPagedList() {
-        Doctor doctor = Doctor.builder().id("d-1").firstName("John").build();
+        Doctor doctor = Doctor.builder().id("d-1").fullName("John").build();
         when(doctorRepository.findAll()).thenReturn(List.of(doctor));
-        when(doctorMapper.toDto(doctor)).thenReturn(DoctorDto.builder().id("d-1").firstName("John").build());
+        when(doctorMapper.toDto(doctor)).thenReturn(DoctorDto.builder().id("d-1").fullName("John").build());
 
         List<DoctorDto> result = doctorService.getAllDoctors();
 
@@ -102,9 +98,9 @@ class DoctorServiceImplTest {
 
     @Test
     void getDoctorByIdReturnsDoctor() {
-        Doctor doctor = Doctor.builder().id("d-1").firstName("John").build();
+        Doctor doctor = Doctor.builder().id("d-1").fullName("John").build();
         when(doctorRepository.findById("d-1")).thenReturn(Optional.of(doctor));
-        when(doctorMapper.toDto(doctor)).thenReturn(DoctorDto.builder().id("d-1").firstName("John").build());
+        when(doctorMapper.toDto(doctor)).thenReturn(DoctorDto.builder().id("d-1").fullName("John").build());
 
         DoctorDto result = doctorService.getDoctorById("d-1");
 
@@ -113,18 +109,19 @@ class DoctorServiceImplTest {
 
     @Test
     void updateDoctorUpdatesStoredFields() {
-        Doctor existing = Doctor.builder().id("d-1").firstName("John").lastName("Doe").build();
+        Doctor existing = Doctor.builder().id("d-1").fullName("John Doe").specialization("GP").experience(2).build();
         when(doctorRepository.findById("d-1")).thenReturn(Optional.of(existing));
         when(doctorRepository.save(any(Doctor.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(doctorMapper.toDto(any(Doctor.class))).thenAnswer(invocation -> {
             Doctor doctor = invocation.getArgument(0);
-            return DoctorDto.builder().id(doctor.getId()).firstName(doctor.getFirstName()).lastName(doctor.getLastName()).build();
+            return DoctorDto.builder().id(doctor.getId()).fullName(doctor.getFullName())
+                    .specialization(doctor.getSpecialization()).experience(doctor.getExperience()).build();
         });
 
-        DoctorDto result = doctorService.updateDoctor("d-1", DoctorDto.builder().firstName("Jane").lastName("Smith").build());
+        DoctorDto result = doctorService.updateDoctor("d-1", DoctorDto.builder().specialization("Cardiology").experience(5).build());
 
-        assertEquals("Jane", result.getFirstName());
-        assertEquals("Smith", result.getLastName());
+        assertEquals("Cardiology", result.getSpecialization());
+        assertEquals(5, result.getExperience());
     }
 
     @Test
@@ -138,7 +135,7 @@ class DoctorServiceImplTest {
 
     @Test
     void getDashboardBuildsSummary() {
-        Doctor doctor = Doctor.builder().id("d-1").firstName("John").lastName("Doe").specialization("GP").build();
+        Doctor doctor = Doctor.builder().id("d-1").fullName("John Doe").specialization("GP").build();
         Patient patient = Patient.builder().id("p-1").build();
         Prescription prescription = Prescription.builder()
                 .id("rx-1")
@@ -147,8 +144,8 @@ class DoctorServiceImplTest {
                 .status("PENDING_PHARMACY_REVIEW")
                 .prescriptionDate("2026-09-08")
                 .build();
-        LabRequest labRequest = LabRequest.builder().id("lrq-1").requestedBy(User.builder().id("d-1").build()).build();
-        LabReport labReport = LabReport.builder().id("lr-1").patient(patient).labRequest(labRequest).testName("CBC").build();
+        LabRequest labRequest = LabRequest.builder().id(java.util.UUID.randomUUID()).requestedBy(User.builder().id("d-1").build()).build();
+        LabReport labReport = LabReport.builder().id("lr-1").patient(patient).labRequest(labRequest).build();
 
         when(doctorRepository.findById("d-1")).thenReturn(Optional.of(doctor));
         when(prescriptionRepository.findAll()).thenReturn(List.of(prescription));

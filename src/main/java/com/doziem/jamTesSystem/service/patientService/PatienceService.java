@@ -56,6 +56,7 @@ public class PatienceService implements IPatientService{
             new LabReportMapper(),
             new PrescriptionMapper(),
             new EncounterMapper());
+
     private EncounterMapper encounterMapper = new EncounterMapper();
 
     @Override

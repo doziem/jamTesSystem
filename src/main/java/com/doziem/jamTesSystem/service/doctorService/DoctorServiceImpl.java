@@ -2,16 +2,23 @@ package com.doziem.jamTesSystem.service.doctorService;
 
 import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.dto.DoctorDashboardDto;
+import com.doziem.jamTesSystem.dto.DoctorPatientVisitDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.mapper.DoctorMapper;
 import com.doziem.jamTesSystem.mapper.LabReportMapper;
 import com.doziem.jamTesSystem.mapper.PrescriptionMapper;
 import com.doziem.jamTesSystem.model.Doctor;
+import com.doziem.jamTesSystem.model.Encounter;
 import com.doziem.jamTesSystem.model.LabReport;
+import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.model.Prescription;
 import com.doziem.jamTesSystem.model.User;
+import com.doziem.jamTesSystem.repository.EncounterRepository;
 import com.doziem.jamTesSystem.repository.LabReportRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.doziem.jamTesSystem.repository.DoctorRepository;
 import com.doziem.jamTesSystem.repository.PrescriptionRepository;
 import com.doziem.jamTesSystem.repository.UserRepository;
@@ -29,10 +36,12 @@ public class DoctorServiceImpl implements IDoctorService{
     private final LabReportRepository labReportRepository;
     private final PrescriptionMapper prescriptionMapper;
     private final LabReportMapper labReportMapper;
+    private final EncounterRepository encounterRepository;
 
     public DoctorServiceImpl(DoctorRepository doctorRepository, UserRepository userRepository, DoctorMapper doctorMapper,
                              PrescriptionRepository prescriptionRepository, LabReportRepository labReportRepository,
-                             PrescriptionMapper prescriptionMapper, LabReportMapper labReportMapper) {
+                             PrescriptionMapper prescriptionMapper, LabReportMapper labReportMapper,
+                             EncounterRepository encounterRepository) {
         this.doctorRepository = doctorRepository;
         this.userRepository = userRepository;
         this.doctorMapper = doctorMapper;
@@ -40,6 +49,7 @@ public class DoctorServiceImpl implements IDoctorService{
         this.labReportRepository = labReportRepository;
         this.prescriptionMapper = prescriptionMapper;
         this.labReportMapper = labReportMapper;
+        this.encounterRepository = encounterRepository;
     }
 
     @Override
@@ -82,6 +92,22 @@ public class DoctorServiceImpl implements IDoctorService{
 
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
+        return doctorMapper.toDto(doctor);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DoctorDto getCurrentDoctor(Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null || !(authentication.getPrincipal() instanceof UserDetails userDetails)) {
+            throw new ResourceNotFoundException("Doctor profile not found for current user");
+        }
+
+        User user = userRepository.findByEmailOrPhone(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Doctor doctor = doctorRepository.findByUser_Id(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor profile not found for current user"));
+
         return doctorMapper.toDto(doctor);
     }
 
@@ -131,7 +157,10 @@ public class DoctorServiceImpl implements IDoctorService{
                         .filter(prescription -> "PENDING_PHARMACY_REVIEW".equalsIgnoreCase(prescription.getStatus()))
                         .count())
                 .pendingLabReports((int) labReports.stream()
-                        .filter(labReport -> labReport.getResult() == null || labReport.getResult().isBlank())
+                        .filter(labReport -> labReport.getTestResults() == null
+                                || labReport.getTestResults().isEmpty()
+                                || labReport.getTestResults().stream()
+                                .anyMatch(result -> result.getResult() == null || result.getResult().isBlank()))
                         .count())
                 .recentPrescriptions(prescriptions.stream()
                         .sorted((a, b) -> {
@@ -151,6 +180,46 @@ public class DoctorServiceImpl implements IDoctorService{
                         .limit(5)
                         .map(labReportMapper::toDto)
                         .toList())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DoctorPatientVisitDto> getAssignedPatients(String doctorId) {
+        if (!doctorRepository.existsById(doctorId)) {
+            throw new ResourceNotFoundException("Doctor not found");
+        }
+
+        return encounterRepository.findByAssignedDoctorIdOrderByArrivalTimeDesc(doctorId).stream()
+                .map(this::toPatientVisitDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DoctorPatientVisitDto> getAllAssignedPatients() {
+        return encounterRepository.findByAssignedDoctorIdIsNotNullOrderByArrivalTimeDesc().stream()
+                .map(this::toPatientVisitDto)
+                .toList();
+    }
+
+    private DoctorPatientVisitDto toPatientVisitDto(Encounter encounter) {
+        Patient patient = encounter.getPatient();
+        return DoctorPatientVisitDto.builder()
+                .encounterId(encounter.getId())
+                .patientId(patient != null ? patient.getId() : null)
+                .mrn(patient != null ? patient.getMrn() : null)
+                .patientName(patient != null ? (patient.getFirstName() + " " + patient.getLastName()).trim() : null)
+                .phone(patient != null ? patient.getPhone() : null)
+                .gender(patient != null ? patient.getGender() : null)
+                .dateOfBirth(patient != null ? patient.getDateOfBirth() : null)
+                .visitType(encounter.getVisitType())
+                .status(encounter.getStatus())
+                .departmentName(encounter.getDepartmentName())
+                .arrivalTime(encounter.getArrivalTime())
+                .triageNotes(encounter.getTriageNotes())
+                .assignedDoctorId(encounter.getAssignedDoctorId())
+                .assignedDoctorName(encounter.getAssignedDoctorName())
                 .build();
     }
 }

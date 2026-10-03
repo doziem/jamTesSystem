@@ -11,9 +11,147 @@ const DEFAULT_FORM = {
   admissionNotes: '',
   dischargeNotes: '',
 }
+const DEPARTMENT_OPTIONS = ['GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
 
 function formatStatusLabel(status) {
   return (status || 'ARRIVED').replaceAll('_', ' ')
+}
+
+function PrescribeModal({ visit, onClose, onSubmit, submitting }) {
+  const [form, setForm] = useState({ medicationName: '', dosage: '', frequency: '', quantity: 1, department: 'GENERAL' })
+  const [error, setError] = useState('')
+
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    setForm((prev) => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    if (!form.medicationName.trim()) {
+      setError('Medication name is required.')
+      return
+    }
+    setError('')
+    try {
+      await onSubmit(form)
+    } catch (err) {
+      setError(err.message || 'Unable to prescribe medication.')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+          <h3 className="text-xl font-bold text-slate-900">Prescribe medication</h3>
+          <button type="button" className="rounded-full border border-slate-300 px-3 py-1 text-lg leading-none text-slate-600" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <p className="mt-3 text-sm text-slate-600">Patient: <strong>{visit?.patientName || 'N/A'}</strong> ({visit?.mrn || 'N/A'})</p>
+        <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Medication name
+            <input name="medicationName" required value={form.medicationName} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Amoxicillin" />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Dosage
+              <input name="dosage" value={form.dosage} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="500mg" />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Frequency
+              <input name="frequency" value={form.frequency} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Twice daily" />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Quantity
+              <input type="number" min="1" name="quantity" value={form.quantity} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Department
+              <select name="department" value={form.department} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
+                {DEPARTMENT_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {error ? <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
+          <div className="flex items-center justify-end gap-3">
+            <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Cancel</button>
+            <button type="submit" disabled={submitting} className="rounded-xl btn-brand px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70">
+              {submitting ? 'Prescribing...' : 'Prescribe medication'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ReferModal({ visit, doctors, currentDoctorId, onClose, onSubmit, submitting }) {
+  const [form, setForm] = useState({ assignedDoctorId: '', departmentName: visit?.departmentName || '', triageNotes: '' })
+  const [error, setError] = useState('')
+
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    setForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    if (!form.assignedDoctorId) {
+      setError('Select a specialist to refer this patient to.')
+      return
+    }
+    setError('')
+    try {
+      await onSubmit(form)
+    } catch (err) {
+      setError(err.message || 'Unable to refer patient.')
+    }
+  }
+
+  const specialists = (doctors || []).filter((doctor) => doctor.id !== currentDoctorId)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+          <h3 className="text-xl font-bold text-slate-900">Refer to specialist</h3>
+          <button type="button" className="rounded-full border border-slate-300 px-3 py-1 text-lg leading-none text-slate-600" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <p className="mt-3 text-sm text-slate-600">Patient: <strong>{visit?.patientName || 'N/A'}</strong> ({visit?.mrn || 'N/A'})</p>
+        <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Refer to doctor
+            <select name="assignedDoctorId" required value={form.assignedDoctorId} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
+              <option value="">Select doctor</option>
+              {specialists.map((doctor) => (
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.fullName || doctor.id}{doctor.specialization ? ` - ${doctor.specialization}` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Department
+            <input name="departmentName" value={form.departmentName} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Cardiology" />
+          </label>
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Referral notes
+            <textarea name="triageNotes" value={form.triageNotes} onChange={handleChange} className="min-h-24 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Reason for referral" />
+          </label>
+          {error ? <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
+          <div className="flex items-center justify-end gap-3">
+            <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Cancel</button>
+            <button type="submit" disabled={submitting} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70">
+              {submitting ? 'Referring...' : 'Refer patient'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
 }
 
 function PatientDetailPage() {
@@ -28,11 +166,80 @@ function PatientDetailPage() {
   const [messageType, setMessageType] = useState('success')
   const [doctors, setDoctors] = useState([])
   const [workflowForm, setWorkflowForm] = useState({})
+  const [currentDoctor, setCurrentDoctor] = useState(null)
+  const [prescribeTarget, setPrescribeTarget] = useState(null)
+  const [referTarget, setReferTarget] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const handlePrescribe = async (form) => {
+    if (!currentDoctor?.userId) {
+      throw new Error('Only a logged-in doctor can prescribe medication.')
+    }
+    setSubmitting(true)
+    try {
+      await writeJson(`${API_BASE}/api/prescriptions/create`, {
+        method: 'POST',
+        body: JSON.stringify({
+          patientId: prescribeTarget.patientId,
+          medicationName: form.medicationName,
+          dosage: form.dosage,
+          frequency: form.frequency,
+          quantity: form.quantity,
+          department: form.department,
+          prescribedBy: currentDoctor.userId,
+          prescriptionDate: new Date().toISOString().slice(0, 10),
+        }),
+      })
+      setMessage(`Prescription created for ${prescribeTarget.patientName || 'patient'}.`)
+      setMessageType('success')
+      setPrescribeTarget(null)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleRefer = async (form) => {
+    if (!referTarget?.encounterId) {
+      throw new Error('No active encounter found to refer.')
+    }
+    setSubmitting(true)
+    try {
+      await writeJson(`${API_BASE}/api/patients/encounters/${referTarget.encounterId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: referTarget.status || 'ARRIVED',
+          assignedDoctorId: form.assignedDoctorId,
+          departmentName: form.departmentName,
+          triageNotes: form.triageNotes,
+        }),
+      })
+      setMessage(`Patient ${referTarget.patientName || ''} referred successfully.`)
+      setMessageType('success')
+      setReferTarget(null)
+      await loadPatient()
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const fullName = useMemo(() => {
     if (!patient) return 'Patient'
     return [patient.firstName, patient.lastName].filter(Boolean).join(' ') || patient.name || 'Patient'
   }, [patient])
+
+  const activeEncounter = history[0] || null
+
+  const activeVisit = useMemo(() => {
+    if (!patient) return null
+    return {
+      encounterId: activeEncounter?.id || null,
+      patientId: patient.id,
+      patientName: fullName,
+      mrn: patient.mrn,
+      departmentName: activeEncounter?.departmentName || '',
+      status: activeEncounter?.status || 'ARRIVED',
+    }
+  }, [patient, fullName, activeEncounter])
 
   const loadPatient = async () => {
     setLoading(true)
@@ -59,6 +266,13 @@ function PatientDetailPage() {
 
       const doctorPayload = await readJson(`${API_BASE}/api/patients/doctors/assignable`)
       setDoctors(normalizeList(doctorPayload))
+
+      try {
+        const currentDoctorPayload = await readJson(`${API_BASE}/api/doctors/me`)
+        setCurrentDoctor(currentDoctorPayload?.data || currentDoctorPayload)
+      } catch {
+        setCurrentDoctor(null)
+      }
     } catch (err) {
       const nextMessage = err.message || 'Unable to load patient details.'
       showError(nextMessage)
@@ -94,16 +308,16 @@ function PatientDetailPage() {
     } finally {
       setUpdating(false)
     }
+  }
 
-    const handleWorkflowChange = (encounterId, field, value) => {
-      setWorkflowForm((prev) => ({
-        ...prev,
-        [encounterId]: {
-          ...(prev[encounterId] || DEFAULT_FORM),
-          [field]: value,
-        },
-      }))
-    }
+  const handleWorkflowChange = (encounterId, field, value) => {
+    setWorkflowForm((prev) => ({
+      ...prev,
+      [encounterId]: {
+        ...(prev[encounterId] || DEFAULT_FORM),
+        [field]: value,
+      },
+    }))
   }
 
   if (loading) {
@@ -113,6 +327,7 @@ function PatientDetailPage() {
   if (!patient) {
     return <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-700">Patient not found.</div>
   }
+
 
   return (
     <div className="space-y-6">
@@ -127,6 +342,32 @@ function PatientDetailPage() {
             <Link to={`/patients/${id}/edit`} className="rounded-xl btn-brand px-4 py-2 text-sm font-semibold transition">
               Edit patient
             </Link>
+            {currentDoctor ? (
+              <>
+                <button
+                  type="button"
+                  disabled={!activeVisit?.encounterId}
+                  onClick={() => setPrescribeTarget(activeVisit)}
+                  className="rounded-lg btn-brand px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Prescribe
+                </button>
+                <Link
+                  to={`/lab-reports/new?patientId=${patient.id}&requestedBy=${currentDoctor?.id || ''}`}
+                  className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                >
+                  Request lab
+                </Link>
+                <button
+                  type="button"
+                  disabled={!activeVisit?.encounterId}
+                  onClick={() => setReferTarget(activeVisit)}
+                  className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Refer
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -326,9 +567,32 @@ function PatientDetailPage() {
             })}
           </div>
         )}
+
       </div>
+
+      {prescribeTarget ? (
+        <PrescribeModal
+          visit={prescribeTarget}
+          submitting={submitting}
+          onClose={() => setPrescribeTarget(null)}
+          onSubmit={handlePrescribe}
+        />
+      ) : null}
+
+      {referTarget ? (
+        <ReferModal
+          visit={referTarget}
+          doctors={doctors}
+          currentDoctorId={currentDoctor?.id}
+          submitting={submitting}
+          onClose={() => setReferTarget(null)}
+          onSubmit={handleRefer}
+        />
+      ) : null}
     </div>
   )
 }
+
+
 
 export default PatientDetailPage

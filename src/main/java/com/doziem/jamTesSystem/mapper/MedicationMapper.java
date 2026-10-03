@@ -7,23 +7,26 @@ import org.springframework.stereotype.Component;
 @Component
 public class MedicationMapper {
 
-    public MedicationDto toDto(Medication medication) {
+    public static MedicationDto toDto(Medication medication) {
         return MedicationDto.builder()
                 .id(medication.getId() != null ? medication.getId().toString() : null)
                 .name(medication.getName())
                 .category(medication.getCategory())
                 .unitPrice(medication.getUnitPrice())
                 .active(medication.isActive())
+                .quantity(medication.getQuantity())
                 .build();
     }
 
-    public Medication toEntity(MedicationDto dto) {
+    public static Medication toEntity(MedicationDto dto) {
         return Medication.builder()
                 .id(dto.getId())
                 .name(dto.getName())
                 .category(dto.getCategory())
                 .unitPrice(dto.getUnitPrice())
                 .active(dto.isActive())
+                .quantity(dto.getQuantity())
+
                 .build();
     }
 }

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
-const departmentOptions = ['MAIN_PHARMACY', 'GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
+const departmentOptions = ['MAIN_PHARMACY', 'ACCIDENT_AND_EMERGENCY', 'GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
 
 const initialForm = {
   name: '',

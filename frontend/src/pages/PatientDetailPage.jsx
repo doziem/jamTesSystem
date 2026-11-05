@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
@@ -156,7 +156,6 @@ function ReferModal({ visit, doctors, currentDoctorId, onClose, onSubmit, submit
 
 function PatientDetailPage() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const showError = useErrorRedirect()
   const [patient, setPatient] = useState(null)
   const [history, setHistory] = useState([])
@@ -276,7 +275,6 @@ function PatientDetailPage() {
     } catch (err) {
       const nextMessage = err.message || 'Unable to load patient details.'
       showError(nextMessage)
-      navigate('/error', { replace: true, state: { message: nextMessage } })
     } finally {
       setLoading(false)
     }

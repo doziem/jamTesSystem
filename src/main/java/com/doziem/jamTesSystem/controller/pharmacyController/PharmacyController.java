@@ -4,13 +4,18 @@ import com.doziem.jamTesSystem.dto.PharmacyDepartmentPerformanceDto;
 import com.doziem.jamTesSystem.dto.PharmacyDto;
 import com.doziem.jamTesSystem.dto.PharmacyInventoryDto;
 import com.doziem.jamTesSystem.dto.PharmacyMedicationLevelDto;
+import com.doziem.jamTesSystem.dto.PharmacyReorderRequestDto;
 import com.doziem.jamTesSystem.dto.PharmacyRecommendationDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
+import com.doziem.jamTesSystem.request.CreatePharmacyReorderRequest;
 import com.doziem.jamTesSystem.response.ApiResponse;
 import com.doziem.jamTesSystem.service.pharmacyService.IPharmacyService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -60,14 +65,12 @@ public class PharmacyController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> getPharmacyById(@PathVariable String id) {
         Optional<PharmacyDto> pharmacy = pharmacyService.getPharmacyById(id);
-        if (pharmacy.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse(false, "Pharmacy not found"));
-        }
-        return ResponseEntity.ok(new ApiResponse(true, "Pharmacy fetched", pharmacy.get()));
+        return pharmacy.map(pharmacyDto -> ResponseEntity.ok(new ApiResponse(true, "Pharmacy fetched", pharmacyDto))).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse(false, "Pharmacy not found")));
     }
 
     @PostMapping("/{pharmacyId}/medications/{medicationId}/stock")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     public ResponseEntity<ApiResponse> addStock(@PathVariable String pharmacyId, @PathVariable String medicationId, @RequestParam int quantity) {
         try {
             PharmacyInventoryDto inventory = pharmacyService.addMedicineToPharmacy(pharmacyId, medicationId, quantity);
@@ -76,6 +79,33 @@ public class PharmacyController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse(false, e.getMessage()));
         }
+    }
+
+    @PostMapping("/{pharmacyId}/medications/{medicationId}/reorder-requests")
+    public ResponseEntity<ApiResponse> createReorderRequest(
+            @PathVariable String pharmacyId,
+            @PathVariable String medicationId,
+            @Valid @RequestBody CreatePharmacyReorderRequest request,
+            Authentication authentication) {
+        PharmacyReorderRequestDto created = pharmacyService.createReorderRequest(
+                pharmacyId, medicationId, request.getQuantity(), authentication);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse(true, "Reorder request submitted", created));
+    }
+
+    @GetMapping("/reorder-requests")
+    public ResponseEntity<ApiResponse> getReorderRequests(Authentication authentication) {
+        return ResponseEntity.ok(new ApiResponse(
+                true, "Reorder requests fetched", pharmacyService.getReorderRequests(authentication)));
+    }
+
+    @PostMapping("/reorder-requests/{requestId}/process")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'ADMIN', 'PHARMACIST')")
+    public ResponseEntity<ApiResponse> processReorderRequest(
+            @PathVariable String requestId,
+            Authentication authentication) {
+        PharmacyReorderRequestDto processed = pharmacyService.processReorderRequest(requestId, authentication);
+        return ResponseEntity.ok(new ApiResponse(true, "Reorder request fulfilled", processed));
     }
 
     @PostMapping("/{mainPharmacyId}/restock-from-inventory/{medicationId}")

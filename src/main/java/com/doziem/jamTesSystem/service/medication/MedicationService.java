@@ -3,7 +3,6 @@ package com.doziem.jamTesSystem.service.medication;
 import com.doziem.jamTesSystem.dto.MedicationDto;
 import com.doziem.jamTesSystem.mapper.MedicationMapper;
 import com.doziem.jamTesSystem.model.Medication;
-import com.doziem.jamTesSystem.model.Pharmacy;
 import com.doziem.jamTesSystem.repository.MedicationRepository;
 import com.doziem.jamTesSystem.repository.PharmacyRepository;
 import lombok.AllArgsConstructor;
@@ -31,10 +30,15 @@ public class MedicationService implements IMedicationService {
      */
     @Override
     public List<MedicationDto> getAllMedications() {
-        return medicationRepository.findAll()
-                .stream()
-                .map(MedicationMapper ::toDto)
-                .toList();
+        try {
+            return medicationRepository.findAll()
+                    .stream()
+                    .map(MedicationMapper ::toDto)
+                    .toList();
+        }catch (Exception e) {
+            logger.error("Error occurred while retrieving all medications", e);
+            return List.of();
+        }
     }
     /**
      * Retrieves a paginated list of medications.

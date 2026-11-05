@@ -61,7 +61,7 @@ function MedicationFormPage() {
       } else {
         const supervisorId = currentUserId()
         if (!supervisorId) throw new Error('Unable to identify the signed-in user. Please log in again.')
-        await writeJson(`${API_BASE}/create/${supervisorId}`, { method: 'POST', body })
+        await writeJson(`${API_BASE}/api/medications/create/${supervisorId}`, { method: 'POST', body })
       }
       setSuccess(id ? 'Medication updated.' : 'Medication created.')
       setTimeout(() => navigate('/main-pharmacy/medications'), 500)

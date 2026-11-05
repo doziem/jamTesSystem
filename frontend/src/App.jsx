@@ -19,7 +19,7 @@ import LabReportPage from './pages/LabReportPage'
 import LabReportCreatePage from './pages/LabReportCreatePage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
-import ErrorPage from './pages/ErrorPage'
+import { ErrorModalContext } from './lib/useErrorRedirect'
 import { API_BASE, STORAGE_KEY, USER_STORAGE_KEY, getStoredToken, writeJson } from './lib/api'
 
 async function loginUser({ identifier, password }) {
@@ -245,6 +245,7 @@ function App() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [modalError, setModalError] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -273,7 +274,7 @@ function App() {
       }
       navigate('/', { replace: true })
     } catch (err) {
-      navigate('/error', { replace: true, state: { message: err.message || 'Unable to sign in.' } })
+      setModalError(err.message || 'Unable to sign in.')
     } finally {
       setLoading(false)
     }
@@ -298,7 +299,7 @@ function App() {
       })
       navigate('/login', { replace: true, state: { message: 'Registration successful. Please check your email to verify your account before logging in.' } })
     } catch (err) {
-      navigate('/error', { replace: true, state: { message: err.message || 'Unable to create your account.' } })
+      setModalError(err.message || 'Unable to create your account.')
     } finally {
       setLoading(false)
     }
@@ -311,7 +312,8 @@ function App() {
   }
 
   return (
-    <Routes>
+    <ErrorModalContext.Provider value={setModalError}>
+      <Routes>
       <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} loading={loading} error={error} />} />
       <Route path="/register" element={token ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleRegister} loading={loading} error={error} />} />
       <Route path="/" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DashboardPage /></AppLayout></ProtectedRoute>} />
@@ -336,9 +338,38 @@ function App() {
       <Route path="/lab-reports/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/lab-reports/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><ProfilePage user={user} token={token} onUserUpdate={handleUserUpdate} /></AppLayout></ProtectedRoute>} />
-      <Route path="/error" element={<ErrorPage />} />
       <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
-    </Routes>
+      </Routes>
+      {modalError ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" role="presentation">
+          <section
+            aria-describedby="error-modal-message"
+            aria-labelledby="error-modal-title"
+            aria-modal="true"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            role="alertdialog"
+          >
+            <div className="flex items-start gap-4">
+              <div aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-lg font-bold text-red-600">!</div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-bold text-slate-900" id="error-modal-title">Something went wrong</h2>
+                <p className="mt-2 break-words text-sm text-slate-600" id="error-modal-message">{modalError}</p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                autoFocus
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                onClick={() => setModalError('')}
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </ErrorModalContext.Provider>
   )
 }
 

@@ -19,7 +19,7 @@ public class MedicationController {
         return medicationService.saveMedication(medicationDto, supervisorId);
     }
 
-    @GetMapping("/")
+    @GetMapping
     public List<MedicationDto> getAllMedications() {
         return medicationService.getAllMedications();
     }

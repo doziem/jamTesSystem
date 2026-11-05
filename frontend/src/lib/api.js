@@ -1,12 +1,69 @@
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 export const STORAGE_KEY = 'jamtes-auth-token'
+export const USER_STORAGE_KEY = 'jamtes-auth-user'
+const EXPIRED_TOKEN_MESSAGE = 'Token expired'
+
+function isTokenExpired(token) {
+  const payload = token.split('.')[1]
+  if (!payload) return false
+
+  try {
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const claims = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')))
+    return typeof claims.exp === 'number' && claims.exp * 1000 <= Date.now()
+  } catch {
+    return false
+  }
+}
 
 export function getStoredToken() {
-  return localStorage.getItem(STORAGE_KEY) || ''
+  const token = localStorage.getItem(STORAGE_KEY) || ''
+  if (token && isTokenExpired(token)) {
+    redirectToLogin(EXPIRED_TOKEN_MESSAGE)
+    return ''
+  }
+
+  return token
 }
 
 export function getAuthHeaders(token = getStoredToken()) {
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+function clearStoredAuth() {
+  localStorage.removeItem(STORAGE_KEY)
+  localStorage.removeItem(USER_STORAGE_KEY)
+}
+
+function redirectToLogin(message) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  clearStoredAuth()
+  const params = new URLSearchParams()
+  if (message) {
+    params.set('message', message)
+  }
+
+  const loginUrl = `/login${params.toString() ? `?${params.toString()}` : ''}`
+  if (window.location.pathname !== '/login' || window.location.search !== (params.toString() ? `?${params.toString()}` : '')) {
+    window.location.replace(loginUrl)
+  }
+}
+
+function handleUnauthorizedResponse(response, payload) {
+  const message = typeof payload === 'string' ? payload : payload?.message || 'Your session has expired. Please log in again.'
+  const normalizedMessage = message.toLowerCase()
+  const token = localStorage.getItem(STORAGE_KEY) || ''
+  const tokenExpired = isTokenExpired(token)
+
+  if (response.status === 401 || tokenExpired || normalizedMessage.includes('token expired') || normalizedMessage.includes('jwt expired')) {
+    redirectToLogin(EXPIRED_TOKEN_MESSAGE)
+    throw new Error(message)
+  }
+
+  return message
 }
 
 export async function readJson(url, options = {}) {
@@ -22,7 +79,7 @@ export async function readJson(url, options = {}) {
   const payload = contentType.includes('application/json') ? await response.json() : await response.text()
 
   if (!response.ok) {
-    const message = typeof payload === 'string' ? payload : payload?.message || 'Request failed'
+    const message = handleUnauthorizedResponse(response, payload)
     throw new Error(message)
   }
 
@@ -43,7 +100,7 @@ export async function writeJson(url, options = {}) {
   const payload = contentType.includes('application/json') ? await response.json() : await response.text()
 
   if (!response.ok) {
-    const message = typeof payload === 'string' ? payload : payload?.message || 'Request failed'
+    const message = handleUnauthorizedResponse(response, payload)
     throw new Error(message)
   }
 

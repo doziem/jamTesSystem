@@ -22,10 +22,11 @@ public class Billing {
     @JoinColumn(name = "patient_id")
     private Patient patient;
 
-    @Column(nullable = false, columnDefinition = "numeric(19,2) default 0")
-    private BigDecimal totalAmount;
+    @Builder.Default
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal totalAmount = BigDecimal.ZERO;
 
-    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Column(nullable = false)
     private boolean paid;
 
     private String paymentMethod;

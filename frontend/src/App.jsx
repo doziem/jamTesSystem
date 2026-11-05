@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import DashboardPage from './pages/DashboardPage'
 import PatientPage from './pages/PatientPage'
@@ -9,16 +9,18 @@ import DoctorPage from './pages/DoctorPage'
 import DoctorCreatePage from './pages/DoctorCreatePage'
 import PharmacyPage from './pages/PharmacyPage'
 import PharmacyCreatePage from './pages/PharmacyCreatePage'
+import MainPharmacyPage from './pages/MainPharmacyPage'
+import MedicationListPage from './pages/MedicationListPage'
+import MedicationFormPage from './pages/MedicationFormPage'
+import SupplyBranchPage from './pages/SupplyBranchPage'
 import BillingPage from './pages/BillingPage'
 import BillingCreatePage from './pages/BillingCreatePage'
 import LabReportPage from './pages/LabReportPage'
 import LabReportCreatePage from './pages/LabReportCreatePage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
-import ErrorPage from './pages/ErrorPage'
-import { API_BASE, STORAGE_KEY, writeJson } from './lib/api'
-
-const USER_STORAGE_KEY = 'jamtes-auth-user'
+import { ErrorModalContext } from './lib/useErrorRedirect'
+import { API_BASE, STORAGE_KEY, USER_STORAGE_KEY, getStoredToken, writeJson } from './lib/api'
 
 async function loginUser({ identifier, password }) {
   const response = await fetch(`${API_BASE}/auth/login`, {
@@ -36,7 +38,7 @@ function LoginPage({ onLogin, loading, error }) {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const location = useLocation()
-  const successMessage = location.state?.message || ''
+  const successMessage = location.state?.message || new URLSearchParams(location.search).get('message') || ''
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -147,6 +149,7 @@ function AppLayout({ user, onLogout, children }) {
             <NavLink to="/patients" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Patients</NavLink>
             <NavLink to="/doctors" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Doctors</NavLink>
             <NavLink to="/pharmacies" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Pharmacies</NavLink>
+            <NavLink to="/main-pharmacy" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Main pharmacy</NavLink>
             <NavLink to="/billing" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Billing</NavLink>
             <NavLink to="/lab-reports" className={({ isActive }) => `${navClass} ${isActive ? activeClass : ''}`} onClick={() => setSidebarOpen(false)}>Lab reports</NavLink>
           </nav>
@@ -235,16 +238,28 @@ function AppLayout({ user, onLogout, children }) {
 }
 
 function App() {
-  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY) || '')
+  const [token, setToken] = useState(getStoredToken)
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem(USER_STORAGE_KEY)
     return savedUser ? JSON.parse(savedUser) : null
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [modalError, setModalError] = useState('')
   const navigate = useNavigate()
 
-  const handleLogin = async ({ identifier, password }) => {
+  useEffect(() => {
+    if (!token) return undefined
+    const interval = setInterval(() => {
+      if (!getStoredToken()) {
+        setToken('')
+        setUser(null)
+      }
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [token])
+
+  const handleLogin =  async ({ identifier, password }) => {
     setLoading(true)
     setError('')
     try {
@@ -259,7 +274,7 @@ function App() {
       }
       navigate('/', { replace: true })
     } catch (err) {
-      navigate('/error', { replace: true, state: { message: err.message || 'Unable to sign in.' } })
+      setModalError(err.message || 'Unable to sign in.')
     } finally {
       setLoading(false)
     }
@@ -284,7 +299,7 @@ function App() {
       })
       navigate('/login', { replace: true, state: { message: 'Registration successful. Please check your email to verify your account before logging in.' } })
     } catch (err) {
-      navigate('/error', { replace: true, state: { message: err.message || 'Unable to create your account.' } })
+      setModalError(err.message || 'Unable to create your account.')
     } finally {
       setLoading(false)
     }
@@ -297,7 +312,8 @@ function App() {
   }
 
   return (
-    <Routes>
+    <ErrorModalContext.Provider value={setModalError}>
+      <Routes>
       <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} loading={loading} error={error} />} />
       <Route path="/register" element={token ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleRegister} loading={loading} error={error} />} />
       <Route path="/" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DashboardPage /></AppLayout></ProtectedRoute>} />
@@ -311,15 +327,49 @@ function App() {
       <Route path="/doctors/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/pharmacies" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PharmacyPage /></AppLayout></ProtectedRoute>} />
       <Route path="/pharmacies/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PharmacyCreatePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/main-pharmacy" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><MainPharmacyPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/main-pharmacy/medications" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><MedicationListPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/main-pharmacy/medications/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><MedicationFormPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/main-pharmacy/medications/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><MedicationFormPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/main-pharmacy/supply" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><SupplyBranchPage /></AppLayout></ProtectedRoute>} />
       <Route path="/billing" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><BillingPage /></AppLayout></ProtectedRoute>} />
       <Route path="/billing/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><BillingCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/lab-reports" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportPage /></AppLayout></ProtectedRoute>} />
       <Route path="/lab-reports/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/lab-reports/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><LabReportCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><ProfilePage user={user} token={token} onUserUpdate={handleUserUpdate} /></AppLayout></ProtectedRoute>} />
-      <Route path="/error" element={<ErrorPage />} />
       <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
-    </Routes>
+      </Routes>
+      {modalError ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" role="presentation">
+          <section
+            aria-describedby="error-modal-message"
+            aria-labelledby="error-modal-title"
+            aria-modal="true"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            role="alertdialog"
+          >
+            <div className="flex items-start gap-4">
+              <div aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-lg font-bold text-red-600">!</div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-bold text-slate-900" id="error-modal-title">Something went wrong</h2>
+                <p className="mt-2 break-words text-sm text-slate-600" id="error-modal-message">{modalError}</p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                autoFocus
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                onClick={() => setModalError('')}
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </ErrorModalContext.Provider>
   )
 }
 

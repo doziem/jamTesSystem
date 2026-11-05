@@ -1,8 +1,11 @@
 package com.doziem.jamTesSystem.service.userService;
 
 import com.doziem.jamTesSystem.dto.UserDto;
+import com.doziem.jamTesSystem.request.ProfileRequest;
+import com.doziem.jamTesSystem.response.ProfileResponse;
 import org.springframework.security.core.Authentication;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,4 +26,8 @@ public interface IUserService {
     boolean canAccessUser(String id, Authentication authentication);
 
     boolean isAdmin(Authentication authentication);
+
+    ProfileResponse createProfileResponse(String userId, ProfileRequest request) throws IOException;
+
+    ProfileResponse getProfileResponse(String userId, Authentication authentication);
 }

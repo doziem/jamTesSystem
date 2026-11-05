@@ -48,10 +48,10 @@ public class Prescription {
     @Column(nullable = false)
     private String status = "PENDING_PHARMACY_REVIEW";
 
-    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Column(nullable = false)
     private boolean paymentConfirmed = false;
 
-    @Column(nullable = false, columnDefinition = "numeric(19,2) default 0")
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal totalCost = BigDecimal.ZERO;
 
     @PrePersist

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { API_BASE, getAuthHeaders } from '../lib/api'
+import { API_BASE, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const initialForm = {
@@ -42,19 +42,10 @@ function BillingCreatePage() {
         billingDate: form.billingDate || null,
       }
 
-      const response = await fetch(`${API_BASE}/api/billing/create`, {
+      await writeJson(`${API_BASE}/api/billing/create`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
         body: JSON.stringify(payload),
       })
-
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to create billing record.')
-      }
 
       setSuccess('Billing record created successfully.')
       setTimeout(() => navigate('/billing'), 500)

@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -31,10 +33,8 @@ public class LabReport {
     @JoinColumn(name = "lab_request_id", nullable = false)
     private LabRequest labRequest;
 
-    @Column(nullable = false)
-    private String testName;
-
-    private String result;
+    @OneToMany(mappedBy = "labReport", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LabReportEntry> testResults = new ArrayList<>();
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate reportDate;

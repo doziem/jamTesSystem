@@ -40,9 +40,9 @@ public class PatientMapper {
                 patient.getAddress(),
                 patient.isActive(),
                 mapEncounters(patient),
-                patient.getLabReports() == null ? new ArrayList<>() : patient.getLabReports().stream().map(labReportMapper::toDto).toList(),
-                patient.getPrescriptions() == null ? new ArrayList<>() : patient.getPrescriptions().stream().map(prescriptionMapper::toDto).toList(),
-                patient.getBillingRecords() == null ? new ArrayList<>() : patient.getBillingRecords().stream().map(billingMapper::toDto).toList()
+                mapLabReports(patient),
+                mapPrescriptions(patient),
+                mapBillingRecords(patient)
         );
     }
 
@@ -51,6 +51,27 @@ public class PatientMapper {
             return new ArrayList<>();
         }
         return patient.getEncounters().stream().map(encounterMapper::toDto).toList();
+    }
+
+    private List<LabReportDto> mapLabReports(Patient patient) {
+        if (patient.getLabReports() == null || !Hibernate.isInitialized(patient.getLabReports())) {
+            return new ArrayList<>();
+        }
+        return patient.getLabReports().stream().map(labReportMapper::toDto).toList();
+    }
+
+    private List<PrescriptionDto> mapPrescriptions(Patient patient) {
+        if (patient.getPrescriptions() == null || !Hibernate.isInitialized(patient.getPrescriptions())) {
+            return new ArrayList<>();
+        }
+        return patient.getPrescriptions().stream().map(prescriptionMapper::toDto).toList();
+    }
+
+    private List<BillingDto> mapBillingRecords(Patient patient) {
+        if (patient.getBillingRecords() == null || !Hibernate.isInitialized(patient.getBillingRecords())) {
+            return new ArrayList<>();
+        }
+        return patient.getBillingRecords().stream().map(billingMapper::toDto).toList();
     }
 
     public Patient toEntity(PatientDto dto, Patient patient) {

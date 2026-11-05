@@ -50,11 +50,13 @@ public class PatienceService implements IPatientService{
     private final BillingMapper billingMapper;
     private final LabReportMapper labReportMapper;
     private final PrescriptionMapper prescriptionMapper;
+
     private PatientMapper patientMapper = new PatientMapper(
             new BillingMapper(),
             new LabReportMapper(),
             new PrescriptionMapper(),
             new EncounterMapper());
+
     private EncounterMapper encounterMapper = new EncounterMapper();
 
     @Override
@@ -301,8 +303,7 @@ public class PatienceService implements IPatientService{
         Doctor doctor = doctorRepository.findById(doctorId.trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
         encounter.setAssignedDoctorId(doctor.getId());
-        encounter.setAssignedDoctorName(((doctor.getFirstName() == null ? "" : doctor.getFirstName()) + " "
-                + (doctor.getLastName() == null ? "" : doctor.getLastName())).trim());
+        encounter.setAssignedDoctorName(doctor.getFullName());
     }
 
     private String normalizeEncounterStatus(String rawStatus) {

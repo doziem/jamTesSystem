@@ -1,10 +1,13 @@
 package com.doziem.jamTesSystem.service.pharmacyService;
 
 import com.doziem.jamTesSystem.constant.Department;
+import com.doziem.jamTesSystem.constant.ReorderRequestStatus;
+import com.doziem.jamTesSystem.constant.Role;
 import com.doziem.jamTesSystem.dto.PharmacyDepartmentPerformanceDto;
 import com.doziem.jamTesSystem.dto.PharmacyDto;
 import com.doziem.jamTesSystem.dto.PharmacyInventoryDto;
 import com.doziem.jamTesSystem.dto.PharmacyMedicationLevelDto;
+import com.doziem.jamTesSystem.dto.PharmacyReorderRequestDto;
 import com.doziem.jamTesSystem.dto.PharmacyRecommendationDto;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.exceptions.UserNotAllowedException;
@@ -16,11 +19,15 @@ import com.doziem.jamTesSystem.service.emailService.EmailService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.lang.reflect.Field;
 import java.util.Comparator;
 import java.util.List;
@@ -33,7 +40,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
 
     private final PharmacyRepository pharmacyRepository;
     private final PharmacyInventoryRepository pharmacyInventoryRepository;
+    private final PharmacyReorderRequestRepository pharmacyReorderRequestRepository;
     private final MedicationRepository medicationRepository;
+    private final UserRepository userRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final BillingRepository billingRepository;
     private final EmailService emailService;
@@ -43,7 +52,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
     public PharmacyServiceImpl(
             PharmacyRepository pharmacyRepository,
             PharmacyInventoryRepository pharmacyInventoryRepository,
+            PharmacyReorderRequestRepository pharmacyReorderRequestRepository,
             MedicationRepository medicationRepository,
+            UserRepository userRepository,
             PrescriptionRepository prescriptionRepository,
             BillingRepository billingRepository,
             EmailService emailService,
@@ -51,7 +62,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
             PharmacyInventoryMapper pharmacyInventoryMapper) {
         this.pharmacyRepository = pharmacyRepository;
         this.pharmacyInventoryRepository = pharmacyInventoryRepository;
+        this.pharmacyReorderRequestRepository = pharmacyReorderRequestRepository;
         this.medicationRepository = medicationRepository;
+        this.userRepository = userRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.billingRepository = billingRepository;
         this.emailService = emailService;
@@ -61,6 +74,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
 
     @Override
     public PharmacyDto createMainPharmacy(PharmacyDto pharmacyDto) {
+        if (pharmacyRepository.existsByMainPharmacyTrue()) {
+            throw new UserNotAllowedException("A main pharmacy already exists. Only one main pharmacy is allowed; create a branch instead");
+        }
         Pharmacy pharmacy = pharmacyMapper.toEntity(pharmacyDto, null);
         pharmacy.setMainPharmacy(true);
         pharmacy.setDepartment(Department.MAIN_PHARMACY);
@@ -77,6 +93,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
 
         Pharmacy pharmacy = pharmacyMapper.toEntity(pharmacyDto, mainPharmacy);
         pharmacy.setMainPharmacy(false);
+        if (pharmacy.getDepartment() == Department.MAIN_PHARMACY) {
+            throw new UserNotAllowedException("A branch pharmacy cannot use the MAIN_PHARMACY department");
+        }
         pharmacy.setMainPharmacyRef(mainPharmacy);
         return pharmacyMapper.toDto(pharmacyRepository.save(pharmacy));
     }
@@ -125,6 +144,93 @@ public class PharmacyServiceImpl implements IPharmacyService {
     public Optional<PharmacyDto> getPharmacyById(String id) {
         return pharmacyRepository.findById(id).map(pharmacyMapper::toDto);
     }
+
+    @Override
+    public PharmacyReorderRequestDto createReorderRequest(String pharmacyId, String medicationId, int quantity, Authentication authentication) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Requested quantity must be greater than zero");
+        }
+        User requester = getAuthenticatedUser(authentication);
+        Pharmacy pharmacy = pharmacyRepository.findById(pharmacyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pharmacy not found"));
+        Medication medication = medicationRepository.findById(medicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
+
+        PharmacyReorderRequest request = new PharmacyReorderRequest();
+        request.setPharmacy(pharmacy);
+        request.setMedication(medication);
+        request.setQuantity(quantity);
+        request.setRequestedBy(requester);
+        request.setStatus(ReorderRequestStatus.PENDING);
+        return toReorderRequestDto(pharmacyReorderRequestRepository.save(request));
+    }
+
+    @Override
+    public List<PharmacyReorderRequestDto> getReorderRequests(Authentication authentication) {
+        User user = getAuthenticatedUser(authentication);
+        List<PharmacyReorderRequest> requests = canProcessReorderRequests(user)
+                ? pharmacyReorderRequestRepository.findAllByOrderByRequestedAtDesc()
+                : pharmacyReorderRequestRepository.findByRequestedByIdOrderByRequestedAtDesc(user.getId());
+        return requests.stream().map(this::toReorderRequestDto).toList();
+    }
+
+    @Override
+    public PharmacyReorderRequestDto processReorderRequest(String requestId, Authentication authentication) {
+        User processor = getAuthenticatedUser(authentication);
+        if (!canProcessReorderRequests(processor)) {
+            throw new AccessDeniedException("Only a supervisor, administrator, or pharmacist can process reorder requests");
+        }
+
+        PharmacyReorderRequest request = pharmacyReorderRequestRepository
+                .findByIdAndStatusForUpdate(requestId, ReorderRequestStatus.PENDING)
+                .orElseThrow(() -> new ResourceNotFoundException("Pending reorder request not found"));
+        if (request.getPharmacy().isMainPharmacy()) {
+            restockMainPharmacyFromInventory(
+                    request.getPharmacy().getId(),
+                    request.getMedication().getId(),
+                    request.getQuantity());
+        } else {
+            transferMedicationFromMain(
+                    request.getPharmacy().getId(),
+                    request.getMedication().getId(),
+                    request.getQuantity());
+        }
+
+        request.setStatus(ReorderRequestStatus.FULFILLED);
+        request.setProcessedBy(processor);
+        request.setProcessedAt(LocalDateTime.now());
+        return toReorderRequestDto(pharmacyReorderRequestRepository.save(request));
+    }
+
+    private User getAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails userDetails)) {
+            throw new AccessDeniedException("Unable to identify the signed-in user");
+        }
+        return userRepository.findByEmailIgnoreCase(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("Signed-in user not found"));
+    }
+
+    private PharmacyReorderRequestDto toReorderRequestDto(PharmacyReorderRequest request) {
+        return PharmacyReorderRequestDto.builder()
+                .id(request.getId())
+                .pharmacyId(request.getPharmacy().getId())
+                .pharmacyName(request.getPharmacy().getName())
+                .medicationId(request.getMedication().getId())
+                .medicationName(request.getMedication().getName())
+                .quantity(request.getQuantity())
+                .status(request.getStatus())
+                .requestedByName(request.getRequestedBy().getName())
+                .processedByName(request.getProcessedBy() == null ? null : request.getProcessedBy().getName())
+                .requestedAt(request.getRequestedAt())
+                .processedAt(request.getProcessedAt())
+                .build();
+    }
+
+    private boolean canProcessReorderRequests(User user) {
+        return user.getRole() == Role.SUPERVISOR
+                || user.getRole() == Role.ADMIN
+                || user.getRole() == Role.PHARMACIST;
+    }
 /**
  * Adds a specified quantity of medication to a pharmacy's inventory.
  * @param pharmacyId the ID of the pharmacy
@@ -159,6 +265,28 @@ public class PharmacyServiceImpl implements IPharmacyService {
         return pharmacyInventoryMapper.toDto(pharmacyInventoryRepository.save(inventory));
     }
 
+    @Override
+    public PharmacyInventoryDto restockMainPharmacyFromInventory(String mainPharmacyId, String medicationId, int quantity) {
+        Pharmacy mainPharmacy = pharmacyRepository.findById(mainPharmacyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Main pharmacy not found"));
+        if (!mainPharmacy.isMainPharmacy()) {
+            throw new UserNotAllowedException("Only the main pharmacy can be restocked from the central inventory");
+        }
+        if (quantity <= 0) {
+            throw new UserNotAllowedException("Quantity must be greater than zero");
+        }
+
+        Medication medication = medicationRepository.findById(medicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
+        if (medication.getQuantity() < quantity) {
+            throw new UserNotAllowedException("Central inventory does not have enough stock of " + medication.getName());
+        }
+
+        medication.setQuantity(medication.getQuantity() - quantity);
+        medicationRepository.save(medication);
+        return addMedicineToPharmacy(mainPharmacyId, medicationId, quantity);
+    }
+
 /**
  * Transfers medication from the main pharmacy to a department pharmacy.
  * @param departmentPharmacyId the ID of the department pharmacy
@@ -170,6 +298,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
  */
     @Override
     public PharmacyInventoryDto transferMedicationFromMain(String departmentPharmacyId, String medicationId, int quantity) {
+        if (quantity <= 0) {
+            throw new UserNotAllowedException("Quantity must be greater than zero");
+        }
         Pharmacy departmentPharmacy = pharmacyRepository.findById(departmentPharmacyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Department pharmacy not found"));
 

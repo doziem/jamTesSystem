@@ -230,7 +230,7 @@ class PatienceServiceTest {
 
         EncounterDto dto = EncounterDto.builder().id("e-1").patientId("p-1").status("TRIAGED").build();
 
-        Doctor doctor = Doctor.builder().id("d-1").firstName("Jane").lastName("Doe").build();
+        Doctor doctor = Doctor.builder().id("d-1").fullName("Jane Doe").build();
         when(doctorRepository.findById("d-1")).thenReturn(Optional.of(doctor));
         when(encounterRepository.findById("e-1")).thenReturn(Optional.of(encounter));
         when(encounterRepository.save(any(Encounter.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -275,7 +275,7 @@ class PatienceServiceTest {
 
     @Test
     void getAssignableDoctorsReturnsMappedDoctors() {
-        Doctor doctor = Doctor.builder().id("d-1").firstName("Jane").lastName("Doe").build();
+        Doctor doctor = Doctor.builder().id("d-1").fullName("Jane Doe").build();
         DoctorDto doctorDto = DoctorDto.builder().id("d-1").fullName("Jane Doe").build();
 
         when(doctorRepository.findAll()).thenReturn(List.of(doctor));

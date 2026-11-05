@@ -4,7 +4,9 @@ import com.doziem.jamTesSystem.dto.PharmacyDepartmentPerformanceDto;
 import com.doziem.jamTesSystem.dto.PharmacyDto;
 import com.doziem.jamTesSystem.dto.PharmacyInventoryDto;
 import com.doziem.jamTesSystem.dto.PharmacyMedicationLevelDto;
+import com.doziem.jamTesSystem.dto.PharmacyReorderRequestDto;
 import com.doziem.jamTesSystem.dto.PharmacyRecommendationDto;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,10 +18,14 @@ public interface IPharmacyService {
     List<PharmacyDto> getAllPharmacies(int page, int size, String sortBy, String sortDirection);
     Optional<PharmacyDto> getPharmacyById(String id);
     PharmacyInventoryDto addMedicineToPharmacy(String pharmacyId, String medicationId, int quantity);
+    PharmacyInventoryDto restockMainPharmacyFromInventory(String mainPharmacyId, String medicationId, int quantity);
     PharmacyInventoryDto transferMedicationFromMain(String departmentPharmacyId, String medicationId, int quantity);
     String confirmPaymentAndDispense(String prescriptionId, String pharmacyId);
     List<PharmacyRecommendationDto> recommendPharmaciesForMedication(String medicationId, int minimumQuantity);
     List<PharmacyDepartmentPerformanceDto> getDepartmentPerformanceDashboard();
     List<PharmacyMedicationLevelDto> getMedicationLevelByDepartment();
     List<PharmacyMedicationLevelDto> getMedicationLevelsByPharmacy(String pharmacyId);
+    PharmacyReorderRequestDto createReorderRequest(String pharmacyId, String medicationId, int quantity, Authentication authentication);
+    List<PharmacyReorderRequestDto> getReorderRequests(Authentication authentication);
+    PharmacyReorderRequestDto processReorderRequest(String requestId, Authentication authentication);
 }

@@ -22,6 +22,9 @@ function AppLayout({ user, onLogout, children }) {
           <NavLink to="/pharmacies" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             Pharmacies
           </NavLink>
+          <NavLink to="/main-pharmacy" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            Main pharmacy
+          </NavLink>
           <NavLink to="/billing" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             Billing
           </NavLink>

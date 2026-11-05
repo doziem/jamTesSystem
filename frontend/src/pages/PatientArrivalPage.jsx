@@ -1,14 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE, readJson, writeJson } from '../lib/api'
+import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
-const defaultSearch = {
-  mrn: '',
-  phone: '',
-  name: '',
-  dob: '',
-}
+const defaultSearch = ''
 
 const defaultPatient = {
   mrn: '',
@@ -31,6 +26,17 @@ const defaultPatient = {
   triageNotes: '',
 }
 
+const departmentOptions = [
+  'Reception',
+  'Emergency',
+  'General Medicine',
+  'Cardiology',
+  'Orthopedics',
+  'Pediatrics',
+  'Neurology',
+  'Dermatology',
+]
+
 function PatientArrivalPage() {
   const navigate = useNavigate()
   const showError = useErrorRedirect()
@@ -38,13 +44,34 @@ function PatientArrivalPage() {
   const [patientForm, setPatientForm] = useState(defaultPatient)
   const [loading, setLoading] = useState(false)
   const [searchResult, setSearchResult] = useState(null)
+  const [showCreatePatientForm, setShowCreatePatientForm] = useState(false)
+  const [doctors, setDoctors] = useState([])
+  const [doctorsLoading, setDoctorsLoading] = useState(true)
+  const [assignmentForm, setAssignmentForm] = useState({
+    departmentName: 'Reception',
+    assignedDoctorId: '',
+    visitType: 'OPD',
+    triageNotes: '',
+  })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const handleSearchChange = (event) => {
-    const { name, value } = event.target
-    setSearch((prev) => ({ ...prev, [name]: value }))
-  }
+  useEffect(() => {
+    const loadDoctors = async () => {
+      try {
+        const payload = await readJson(`${API_BASE}/api/patients/doctors/assignable`)
+        setDoctors(normalizeList(payload))
+      } catch (err) {
+        setError(err.message || 'Unable to load doctors.')
+      } finally {
+        setDoctorsLoading(false)
+      }
+    }
+
+    loadDoctors()
+  }, [])
+
+  const handleSearchChange = (event) => setSearch(event.target.value)
 
   const handlePatientChange = (event) => {
     const { name, value } = event.target
@@ -72,11 +99,23 @@ function PatientArrivalPage() {
     setSearchResult(null)
 
     try {
+      const query = search.trim()
+      if (!query) {
+        setMessage('Enter MRN, phone, name, or birth date to search.')
+        return
+      }
+
       const params = new URLSearchParams()
-      if (search.mrn) params.set('mrn', search.mrn)
-      if (search.phone) params.set('phone', search.phone)
-      if (search.name) params.set('name', search.name)
-      if (search.dob) params.set('dob', search.dob)
+      const normalizedDate = /^\d{4}-\d{2}-\d{2}$/.test(query)
+      if (normalizedDate) {
+        params.set('dob', query)
+      } else if (/^JAM-\d{4}-\d{5,6}$/i.test(query)) {
+        params.set('mrn', query)
+      } else if (/^\+?\d{7,15}$/.test(query.replace(/\s+/g, ''))) {
+        params.set('phone', query)
+      } else {
+        params.set('name', query)
+      }
 
       const payload = await readJson(`${API_BASE}/api/patients/search?${params.toString()}`)
       const results = Array.isArray(payload?.data) ? payload.data : payload?.data ? [payload.data] : []
@@ -86,9 +125,64 @@ function PatientArrivalPage() {
       }
 
       setSearchResult(results[0])
+      setAssignmentForm((prev) => ({
+        ...prev,
+        assignedDoctorId: '',
+      }))
       setMessage(`Matching patient found: ${results[0].mrn || results[0].id}`)
     } catch (err) {
       const nextMessage = err.message || 'Unable to search for patient.'
+      setError(nextMessage)
+      showError(nextMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAssignmentChange = (event) => {
+    const { name, value } = event.target
+    setAssignmentForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleAssignExistingPatient = async () => {
+    if (!searchResult) return
+    if (!assignmentForm.assignedDoctorId) {
+      setError('Select a doctor to assign this patient.')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const payload = {
+        mrn: searchResult.mrn || '',
+        phone: searchResult.phone || '',
+        firstName: searchResult.firstName || '',
+        lastName: searchResult.lastName || '',
+        email: searchResult.email || '',
+        dateOfBirth: searchResult.dateOfBirth || null,
+        gender: searchResult.gender || 'MALE',
+        address: searchResult.address || defaultPatient.address,
+        visitType: assignmentForm.visitType || 'OPD',
+        departmentName: assignmentForm.departmentName || 'Reception',
+        assignedDoctorId: assignmentForm.assignedDoctorId,
+        triageNotes: assignmentForm.triageNotes || '',
+      }
+
+      const response = await writeJson(`${API_BASE}/api/patients/arrival`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      const encounter = response?.data?.encounter || response?.encounter
+      setMessage(`Patient assigned successfully. Encounter status: ${encounter?.status || 'ARRIVED'}`)
+      setTimeout(() => navigate(`/patients/${searchResult.id}`), 700)
+    } catch (err) {
+      const nextMessage = err.message || 'Unable to assign patient to doctor.'
       setError(nextMessage)
       showError(nextMessage)
     } finally {
@@ -150,26 +244,16 @@ function PatientArrivalPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.2fr]">
         <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <h2 className="text-lg font-semibold text-slate-900">Search existing patient</h2>
-          <form className="mt-4 grid gap-4" onSubmit={handleSearch}>
+          <form className="mt-4 grid gap-3" onSubmit={handleSearch}>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              MRN
-              <input name="mrn" value={search.mrn} onChange={handleSearchChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="JAM-2026-24581" />
+              Search patient
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input value={search} onChange={handleSearchChange} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Enter MRN, phone, name, or YYYY-MM-DD birth date" />
+                <button type="submit" disabled={loading} className="rounded-xl btn-brand px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 sm:whitespace-nowrap">
+                  {loading ? 'Searching...' : 'Search patient'}
+                </button>
+              </div>
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Phone
-              <input name="phone" value={search.phone} onChange={handleSearchChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="+2348012345678" />
-            </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Name
-              <input name="name" value={search.name} onChange={handleSearchChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Jane Doe" />
-            </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Date of birth
-              <input type="date" name="dob" value={search.dob} onChange={handleSearchChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" />
-            </label>
-            <button type="submit" disabled={loading} className="rounded-xl btn-brand px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70">
-              {loading ? 'Searching...' : 'Search patient'}
-            </button>
           </form>
 
           {searchResult ? (
@@ -178,12 +262,94 @@ function PatientArrivalPage() {
               <div className="mt-2">MRN: {searchResult.mrn || 'N/A'}</div>
               <div>Name: {searchResult.firstName} {searchResult.lastName}</div>
               <div>Phone: {searchResult.phone || 'N/A'}</div>
+              <div className="mt-4 grid gap-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-medium text-slate-700">
+                    Department
+                    <select
+                      name="departmentName"
+                      value={assignmentForm.departmentName}
+                      onChange={handleAssignmentChange}
+                      className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                    >
+                      {departmentOptions.map((department) => (
+                        <option key={department} value={department}>
+                          {department}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-700">
+                    Visit type
+                    <select
+                      name="visitType"
+                      value={assignmentForm.visitType}
+                      onChange={handleAssignmentChange}
+                      className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                    >
+                      <option value="OPD">OPD</option>
+                      <option value="EMERGENCY">Emergency</option>
+                      <option value="ADMISSION">Admission</option>
+                      <option value="FOLLOW_UP">Follow up</option>
+                    </select>
+                  </label>
+                </div>
+                <label className="grid gap-2 text-sm font-medium text-slate-700">
+                  Assign doctor
+                  <select
+                    name="assignedDoctorId"
+                    value={assignmentForm.assignedDoctorId}
+                    onChange={handleAssignmentChange}
+                    disabled={doctorsLoading || doctors.length === 0}
+                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  >
+                    <option value="">
+                      {doctorsLoading ? 'Loading doctors...' : doctors.length ? 'Select doctor' : 'No doctors available'}
+                    </option>
+                    {doctors.map((doctor) => (
+                      <option key={doctor.id} value={doctor.id}>
+                        {doctor.fullName || [doctor.firstName, doctor.lastName].filter(Boolean).join(' ') || doctor.id}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-slate-700">
+                  Triage notes
+                  <textarea
+                    name="triageNotes"
+                    value={assignmentForm.triageNotes}
+                    onChange={handleAssignmentChange}
+                    className="min-h-20 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                    placeholder="Optional notes"
+                  />
+                </label>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleAssignExistingPatient}
+                    disabled={loading}
+                    className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {loading ? 'Assigning...' : 'Assign patient to doctor'}
+                  </button>
+                </div>
+              </div>
             </div>
           ) : null}
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h2 className="text-lg font-semibold text-slate-900">Register new patient for arrival</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-slate-900">Register new patient for arrival</h2>
+            <button
+              type="button"
+              onClick={() => setShowCreatePatientForm((prev) => !prev)}
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {showCreatePatientForm ? 'Hide form' : 'Create new patient'}
+            </button>
+          </div>
+          {showCreatePatientForm ? (
           <form className="mt-4 grid gap-4" onSubmit={handleArrival}>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -227,6 +393,27 @@ function PatientArrivalPage() {
                 Department
                 <input name="departmentName" value={patientForm.departmentName} onChange={handlePatientChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Reception" />
               </label>
+              <label className="grid gap-2 text-sm font-medium text-slate-700 md:col-span-2">
+                Assign doctor
+                <select
+                  name="assignedDoctorId"
+                  required
+                  value={patientForm.assignedDoctorId}
+                  onChange={handlePatientChange}
+                  disabled={doctorsLoading || doctors.length === 0}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                >
+                  <option value="">
+                    {doctorsLoading ? 'Loading doctors...' : doctors.length ? 'Select doctor' : 'No doctors available'}
+                  </option>
+                  {doctors.map((doctor) => (
+                    <option key={doctor.id} value={doctor.id}>
+                      {doctor.fullName || doctor.id}
+                      {doctor.specialization ? ` - ${doctor.specialization}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -264,6 +451,7 @@ function PatientArrivalPage() {
               {loading ? 'Checking in...' : 'Check in patient'}
             </button>
           </form>
+          ) : null}
         </section>
       </div>
     </div>

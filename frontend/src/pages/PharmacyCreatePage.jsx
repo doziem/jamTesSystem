@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { API_BASE, getAuthHeaders } from '../lib/api'
+import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
-const departmentOptions = ['MAIN_PHARMACY', 'GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
+const departmentOptions = ['MAIN_PHARMACY', 'ACCIDENT_AND_EMERGENCY', 'GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
 
 const initialForm = {
   name: '',
@@ -19,7 +19,19 @@ function PharmacyCreatePage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [existingMain, setExistingMain] = useState(null)
 
+  useEffect(() => {
+    readJson(`${API_BASE}/api/pharmacies/all?page=0&size=100&sortBy=name&sortDirection=asc`)
+      .then((payload) => {
+        const main = normalizeList(payload).find((pharmacy) => pharmacy.mainPharmacy)
+        if (main) {
+          setExistingMain(main)
+          setForm((prev) => ({ ...prev, mainPharmacy: false, mainPharmacyId: main.id, department: prev.department === 'MAIN_PHARMACY' ? 'GENERAL' : prev.department }))
+        }
+      })
+      .catch(() => {})
+  }, [])
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target
     setForm((prev) => ({
@@ -47,19 +59,10 @@ function PharmacyCreatePage() {
       }
 
       const endpoint = form.mainPharmacy ? `${API_BASE}/api/pharmacies/main` : `${API_BASE}/api/pharmacies/${form.mainPharmacyId}/department`
-      const response = await fetch(endpoint, {
+      await writeJson(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
         body: JSON.stringify(payload),
       })
-
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to create pharmacy.')
-      }
 
       setSuccess('Pharmacy created successfully.')
       setTimeout(() => navigate('/pharmacies'), 500)
@@ -94,19 +97,25 @@ function PharmacyCreatePage() {
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Department
             <select name="department" value={form.department} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
-              {departmentOptions.map((option) => (
+              {departmentOptions.filter((option) => !existingMain || option !== 'MAIN_PHARMACY').map((option) => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
           </label>
 
-          <label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700">
-            <input type="checkbox" name="mainPharmacy" checked={form.mainPharmacy} onChange={handleChange} />
-            This is the main pharmacy
-          </label>
+          {existingMain ? (
+            <div className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              Branch of main pharmacy: <span className="font-semibold">{existingMain.name}</span>. Only one main pharmacy is allowed.
+            </div>
+          ) : (
+            <label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700">
+              <input type="checkbox" name="mainPharmacy" checked={form.mainPharmacy} onChange={handleChange} />
+              This is the main pharmacy
+            </label>
+          )}
         </div>
 
-        {!form.mainPharmacy ? (
+        {!form.mainPharmacy && !existingMain ? (
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Parent main pharmacy ID
             <input name="mainPharmacyId" value={form.mainPharmacyId} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="main-pharmacy-id" />

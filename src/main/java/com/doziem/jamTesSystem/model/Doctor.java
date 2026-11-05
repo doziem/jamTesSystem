@@ -20,11 +20,11 @@ public class Doctor {
 
     @Id
     private String id;
-
-    private String firstName;
-    private String lastName;
+    private String fullName;
     private String specialization;
     private int experience;
+    private String email;
+    private String phoneNumber;
 
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)

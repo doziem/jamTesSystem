@@ -1,21 +1,41 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
+
+function getStoredUserRole() {
+  try {
+    return JSON.parse(localStorage.getItem('jamtes-auth-user') || 'null')?.role || ''
+  } catch {
+    return ''
+  }
+}
 
 function PharmacyPage() {
   const [pharmacies, setPharmacies] = useState([])
   const [medications, setMedications] = useState([])
+  const [reorderRequests, setReorderRequests] = useState(null)
+  const [requestQuantities, setRequestQuantities] = useState({})
   const [searchTerm, setSearchTerm] = useState('')
   const [lowStockOnly, setLowStockOnly] = useState(false)
   const [reorderStatus, setReorderStatus] = useState('')
+  const [reorderError, setReorderError] = useState('')
   const [selectedPharmacyId, setSelectedPharmacyId] = useState('')
   const [loading, setLoading] = useState(true)
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [actionLoadingId, setActionLoadingId] = useState('')
+  const [userRole] = useState(getStoredUserRole)
   const [error, setError] = useState('')
   const [inventoryError, setInventoryError] = useState('')
   const showError = useErrorRedirect()
+  const canProcessReorderRequests = ['SUPERVISOR', 'ADMIN', 'PHARMACIST'].includes(userRole)
+  const requestsLoading = reorderRequests === null
+
+  const loadReorderRequests = async () => {
+    const payload = await readJson(`${API_BASE}/api/pharmacies/reorder-requests`)
+    setReorderRequests(normalizeList(payload))
+    setReorderError('')
+  }
 
   useEffect(() => {
     const loadPharmacies = async () => {
@@ -41,6 +61,18 @@ function PharmacyPage() {
     }
 
     loadPharmacies()
+  }, [])
+
+  useEffect(() => {
+    const fetchReorderRequests = async () => {
+      try {
+        await loadReorderRequests()
+      } catch (err) {
+        setReorderError(err.message || 'Unable to load reorder requests.')
+      }
+    }
+
+    fetchReorderRequests()
   }, [])
 
   useEffect(() => {
@@ -101,43 +133,55 @@ function PharmacyPage() {
   const handleReorderRequest = async (item) => {
     const pharmacyId = selectedPharmacyId
     const medicationId = item.medicationId
+    const requestQuantity = Number(requestQuantities[medicationId] ?? 1)
 
-    if (!pharmacyId || !medicationId) {
+    if (!pharmacyId || !medicationId || !Number.isInteger(requestQuantity) || requestQuantity <= 0) {
       return
     }
-
-    const quantityInStock = item.quantityInStock ?? 0
-    const reorderLevel = item.reorderLevel ?? 0
-    const requestQuantity = Math.max(reorderLevel + 5 - quantityInStock, 1)
 
     setActionLoadingId(medicationId)
     setInventoryError('')
     setReorderStatus('')
+    setReorderError('')
 
     try {
-      const response = await fetch(
-        `${API_BASE}/api/pharmacies/${pharmacyId}/medications/${medicationId}/stock?quantity=${requestQuantity}`,
+      await writeJson(
+        `${API_BASE}/api/pharmacies/${pharmacyId}/medications/${medicationId}/reorder-requests`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          body: JSON.stringify({ quantity: requestQuantity }),
         },
       )
 
-      const data = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to create reorder request.')
-      }
-
-      setReorderStatus(`Reorder request sent for ${item.medicationName || 'medication'} (${requestQuantity} units).`)
-
-      const refreshed = await readJson(`${API_BASE}/api/pharmacies/${pharmacyId}/medications`)
-      setMedications(normalizeList(refreshed))
+      setReorderStatus(`Reorder request submitted for ${item.medicationName || 'medication'} (${requestQuantity} units).`)
+      await loadReorderRequests()
     } catch (err) {
-      const message = err.message || 'Unable to create reorder request.'
-      setInventoryError(message)
+      const message = err.message || 'Unable to submit reorder request.'
+      setReorderError(message)
+      showError(message)
+    } finally {
+      setActionLoadingId('')
+    }
+  }
+
+  const handleProcessReorderRequest = async (request) => {
+    setActionLoadingId(`request-${request.id}`)
+    setReorderError('')
+    setReorderStatus('')
+
+    try {
+      await writeJson(`${API_BASE}/api/pharmacies/reorder-requests/${request.id}/process`, {
+        method: 'POST',
+      })
+      setReorderStatus(`Fulfilled ${request.quantity} units of ${request.medicationName} for ${request.pharmacyName}.`)
+      await loadReorderRequests()
+      if (request.pharmacyId === selectedPharmacyId) {
+        const refreshed = await readJson(`${API_BASE}/api/pharmacies/${selectedPharmacyId}/medications`)
+        setMedications(normalizeList(refreshed))
+      }
+    } catch (err) {
+      const message = err.message || 'Unable to process reorder request.'
+      setReorderError(message)
       showError(message)
     } finally {
       setActionLoadingId('')
@@ -218,8 +262,6 @@ function PharmacyPage() {
 
               {inventoryLoading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading medication inventory...</div> : null}
               {inventoryError ? <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800">{inventoryError}</div> : null}
-              {reorderStatus ? <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{reorderStatus}</div> : null}
-
               {!inventoryLoading && !inventoryError ? (
                 <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
                   <table className="min-w-full text-left text-sm">
@@ -248,6 +290,20 @@ function PharmacyPage() {
                             </td>
                             <td className="px-4 py-3">{item.warningMessage || 'Sufficient stock available.'}</td>
                             <td className="px-4 py-3">
+                              <div className="flex min-w-48 items-center gap-2">
+                                <input
+                                  aria-label={`Quantity to request for ${item.medicationName || 'medication'}`}
+                                  className="w-20 rounded-lg border border-slate-300 px-2 py-2"
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  required
+                                  value={requestQuantities[item.medicationId] ?? '1'}
+                                  onChange={(event) => setRequestQuantities((current) => ({
+                                    ...current,
+                                    [item.medicationId]: event.target.value,
+                                  }))}
+                                />
                               <button
                                 type="button"
                                 className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
@@ -256,6 +312,7 @@ function PharmacyPage() {
                               >
                                 {isLoading ? 'Requesting...' : 'Request reorder'}
                               </button>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -270,6 +327,74 @@ function PharmacyPage() {
               ) : null}
             </div>
           ) : null}
+
+          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">
+                  {canProcessReorderRequests ? 'Reorder processing queue' : 'My reorder requests'}
+                </div>
+                <h2 className="mt-1 text-xl font-bold text-slate-900">
+                  {canProcessReorderRequests ? 'Pharmacy reorder requests' : 'Submitted requests'}
+                </h2>
+              </div>
+            </div>
+
+            {reorderStatus ? <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{reorderStatus}</div> : null}
+            {reorderError ? <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{reorderError}</div> : null}
+            {requestsLoading ? <div className="mt-4 text-sm text-slate-600">Loading reorder requests...</div> : null}
+
+            {!requestsLoading && !reorderError ? (
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-slate-600">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Pharmacy</th>
+                      <th className="px-4 py-3 font-semibold">Medication</th>
+                      <th className="px-4 py-3 font-semibold">Quantity</th>
+                      <th className="px-4 py-3 font-semibold">Requested by</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                      {canProcessReorderRequests ? <th className="px-4 py-3 font-semibold">Action</th> : null}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {reorderRequests.length ? reorderRequests.map((request) => {
+                      const isProcessing = actionLoadingId === `request-${request.id}`
+                      return (
+                        <tr key={request.id}>
+                          <td className="px-4 py-3">{request.pharmacyName}</td>
+                          <td className="px-4 py-3">{request.medicationName}</td>
+                          <td className="px-4 py-3">{request.quantity}</td>
+                          <td className="px-4 py-3">{request.requestedByName}</td>
+                          <td className="px-4 py-3">{request.status}</td>
+                          {canProcessReorderRequests ? (
+                            <td className="px-4 py-3">
+                              {request.status === 'PENDING' ? (
+                                <button
+                                  type="button"
+                                  className="rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white disabled:opacity-60"
+                                  onClick={() => handleProcessReorderRequest(request)}
+                                  disabled={isProcessing}
+                                >
+                                  {isProcessing ? 'Processing...' : 'Fulfill request'}
+                                </button>
+                              ) : request.processedByName ? `Processed by ${request.processedByName}` : 'Fulfilled'}
+                            </td>
+                          ) : null}
+                        </tr>
+                      )
+                    }) : (
+                      <tr>
+                        <td colSpan={canProcessReorderRequests ? 6 : 5} className="px-4 py-6 text-center text-slate-600">
+                          No reorder requests yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </section>
         </>
       ) : null}
     </div>

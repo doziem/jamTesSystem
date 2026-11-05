@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface EncounterRepository extends JpaRepository<Encounter, String> {
     List<Encounter> findByPatientIdOrderByArrivalTimeDesc(String patientId);
+    List<Encounter> findByAssignedDoctorIdOrderByArrivalTimeDesc(String assignedDoctorId);
+    List<Encounter> findByAssignedDoctorIdIsNotNullOrderByArrivalTimeDesc();
 }

@@ -16,6 +16,7 @@ public interface IPharmacyService {
     List<PharmacyDto> getAllPharmacies(int page, int size, String sortBy, String sortDirection);
     Optional<PharmacyDto> getPharmacyById(String id);
     PharmacyInventoryDto addMedicineToPharmacy(String pharmacyId, String medicationId, int quantity);
+    PharmacyInventoryDto restockMainPharmacyFromInventory(String mainPharmacyId, String medicationId, int quantity);
     PharmacyInventoryDto transferMedicationFromMain(String departmentPharmacyId, String medicationId, int quantity);
     String confirmPaymentAndDispense(String prescriptionId, String pharmacyId);
     List<PharmacyRecommendationDto> recommendPharmaciesForMedication(String medicationId, int minimumQuantity);

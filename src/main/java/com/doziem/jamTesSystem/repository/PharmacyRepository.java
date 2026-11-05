@@ -15,6 +15,7 @@ public interface PharmacyRepository extends JpaRepository<Pharmacy, String> {
     Optional<Pharmacy> findByDepartmentAndMainPharmacy(Department department, boolean mainPharmacy);
     List<Pharmacy> findByMainPharmacyRefId(String mainPharmacyId);
     Optional<Pharmacy> findByName(String name);
+    boolean existsByMainPharmacyTrue();
     Page<Pharmacy> findAll(Pageable pageable);
 
 }

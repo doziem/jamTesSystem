@@ -59,8 +59,8 @@ public class MedicationServiceTest {
                 .quantity(20)
                 .build();
 
-//        when(medicationRepository.save(medication)).thenReturn(medication);
-        when(medicationMapper.toEntity(dto)).thenReturn(medication);
+       when(medicationRepository.save(medication)).thenReturn(medication);
+        when(MedicationMapper.toEntity(dto)).thenReturn(medication);
         when(pharmacyRepository.findById("p-1")).thenReturn(Optional.of(pharmacy));
 
 

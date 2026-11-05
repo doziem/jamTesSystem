@@ -78,6 +78,17 @@ public class PharmacyController {
         }
     }
 
+    @PostMapping("/{mainPharmacyId}/restock-from-inventory/{medicationId}")
+    public ResponseEntity<ApiResponse> restockFromInventory(@PathVariable String mainPharmacyId, @PathVariable String medicationId, @RequestParam int quantity) {
+        try {
+            PharmacyInventoryDto inventory = pharmacyService.restockMainPharmacyFromInventory(mainPharmacyId, medicationId, quantity);
+            return ResponseEntity.ok(new ApiResponse(true, "Main pharmacy restocked from inventory", inventory));
+        } catch (ResourceNotFoundException | UserNotAllowedException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, e.getMessage()));
+        }
+    }
+
     @PostMapping("/{departmentPharmacyId}/transfer/{medicationId}")
     public ResponseEntity<ApiResponse> transferStock(@PathVariable String departmentPharmacyId, @PathVariable String medicationId, @RequestParam int quantity) {
         try {

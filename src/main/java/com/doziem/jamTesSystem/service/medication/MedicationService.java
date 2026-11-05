@@ -117,6 +117,7 @@ public class MedicationService implements IMedicationService {
                     existingMedication.setCategory(medicationDto.getCategory());
                     existingMedication.setUnitPrice(medicationDto.getUnitPrice());
                     existingMedication.setActive(medicationDto.isActive());
+                    existingMedication.setQuantity(medicationDto.getQuantity());
                     Medication updatedMedication = medicationRepository.save(existingMedication);
                     return MedicationMapper.toDto(updatedMedication);
                 })

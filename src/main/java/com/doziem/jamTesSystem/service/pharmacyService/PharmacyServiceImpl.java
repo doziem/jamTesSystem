@@ -61,6 +61,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
 
     @Override
     public PharmacyDto createMainPharmacy(PharmacyDto pharmacyDto) {
+        if (pharmacyRepository.existsByMainPharmacyTrue()) {
+            throw new UserNotAllowedException("A main pharmacy already exists. Only one main pharmacy is allowed; create a branch instead");
+        }
         Pharmacy pharmacy = pharmacyMapper.toEntity(pharmacyDto, null);
         pharmacy.setMainPharmacy(true);
         pharmacy.setDepartment(Department.MAIN_PHARMACY);
@@ -77,6 +80,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
 
         Pharmacy pharmacy = pharmacyMapper.toEntity(pharmacyDto, mainPharmacy);
         pharmacy.setMainPharmacy(false);
+        if (pharmacy.getDepartment() == Department.MAIN_PHARMACY) {
+            throw new UserNotAllowedException("A branch pharmacy cannot use the MAIN_PHARMACY department");
+        }
         pharmacy.setMainPharmacyRef(mainPharmacy);
         return pharmacyMapper.toDto(pharmacyRepository.save(pharmacy));
     }
@@ -159,6 +165,28 @@ public class PharmacyServiceImpl implements IPharmacyService {
         return pharmacyInventoryMapper.toDto(pharmacyInventoryRepository.save(inventory));
     }
 
+    @Override
+    public PharmacyInventoryDto restockMainPharmacyFromInventory(String mainPharmacyId, String medicationId, int quantity) {
+        Pharmacy mainPharmacy = pharmacyRepository.findById(mainPharmacyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Main pharmacy not found"));
+        if (!mainPharmacy.isMainPharmacy()) {
+            throw new UserNotAllowedException("Only the main pharmacy can be restocked from the central inventory");
+        }
+        if (quantity <= 0) {
+            throw new UserNotAllowedException("Quantity must be greater than zero");
+        }
+
+        Medication medication = medicationRepository.findById(medicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
+        if (medication.getQuantity() < quantity) {
+            throw new UserNotAllowedException("Central inventory does not have enough stock of " + medication.getName());
+        }
+
+        medication.setQuantity(medication.getQuantity() - quantity);
+        medicationRepository.save(medication);
+        return addMedicineToPharmacy(mainPharmacyId, medicationId, quantity);
+    }
+
 /**
  * Transfers medication from the main pharmacy to a department pharmacy.
  * @param departmentPharmacyId the ID of the department pharmacy
@@ -170,6 +198,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
  */
     @Override
     public PharmacyInventoryDto transferMedicationFromMain(String departmentPharmacyId, String medicationId, int quantity) {
+        if (quantity <= 0) {
+            throw new UserNotAllowedException("Quantity must be greater than zero");
+        }
         Pharmacy departmentPharmacy = pharmacyRepository.findById(departmentPharmacyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Department pharmacy not found"));
 

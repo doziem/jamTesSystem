@@ -8,6 +8,7 @@ import com.doziem.jamTesSystem.service.prescriptionService.IPrescriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,6 +34,7 @@ public class PrescriptionController {
     }
 
     @PostMapping("/create")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<ApiResponse> createPrescription(@RequestBody PrescriptionDto prescriptionDto, Authentication authentication) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -52,7 +54,29 @@ public class PrescriptionController {
         }
     }
 
+    @GetMapping("/pharmacy/{pharmacyId}")
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'SUPERVISOR', 'ADMIN')")
+    public List<PrescriptionDto> getPharmacyPrescriptions(@PathVariable String pharmacyId) {
+        return prescriptionService.getPharmacyPrescriptions(pharmacyId);
+    }
+
+    @PostMapping("/pharmacy/{pharmacyId}/{prescriptionId}/estimate")
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'SUPERVISOR', 'ADMIN')")
+    public ResponseEntity<ApiResponse> estimatePrescription(@PathVariable String pharmacyId, @PathVariable String prescriptionId) {
+        try {
+            return ResponseEntity.ok(new ApiResponse(true, "Prescription estimated",
+                    prescriptionService.estimatePrescription(pharmacyId, prescriptionId)));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false, e.getMessage()));
+        } catch (UserNotAllowedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponse(false, e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, e.getMessage()));
+        }
+    }
+
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<PrescriptionDto> updatePrescription(@PathVariable String id, @RequestBody PrescriptionDto prescriptionDto, Authentication authentication) {
         try {
             return ResponseEntity.ok(prescriptionService.updatePrescription(id, prescriptionDto, authentication));

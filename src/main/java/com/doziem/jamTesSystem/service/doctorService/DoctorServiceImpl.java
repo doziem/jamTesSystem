@@ -134,18 +134,21 @@ public class DoctorServiceImpl implements IDoctorService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DoctorDashboardDto getDashboard(String doctorId) {
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
 
+        String doctorUserId = doctor.getUser() != null ? doctor.getUser().getId() : null;
         List<Prescription> prescriptions = prescriptionRepository.findAll().stream()
-                .filter(prescription -> prescription.getPrescribedBy() != null && prescription.getPrescribedBy().equals(doctorId))
+                .filter(prescription -> doctorUserId != null && doctorUserId.equals(prescription.getPrescribedBy()))
                 .toList();
 
-        List<LabReport> labReports = labReportRepository.findByLabRequestRequestedById(doctorId);
+        List<LabReport> labReports = doctorUserId == null ? List.of() : labReportRepository.findByLabRequestRequestedById(doctorUserId);
 
         return DoctorDashboardDto.builder()
                 .doctorId(doctor.getId() != null ? doctor.getId().toString() : null)
+                .doctorName(doctor.getUser() != null ? doctor.getUser().getName() : doctor.getFullName())
                 .specialization(doctor.getSpecialization())
                 .totalPatients((int) prescriptions.stream()
                         .map(prescription -> prescription.getPatient() != null && prescription.getPatient().getId() != null ? prescription.getPatient().getId().toString() : null)

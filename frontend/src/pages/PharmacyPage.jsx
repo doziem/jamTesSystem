@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
+import { API_BASE, normalizeList, readAllPages, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function getStoredUserRole() {
@@ -14,6 +14,9 @@ function getStoredUserRole() {
 function PharmacyPage() {
   const [pharmacies, setPharmacies] = useState([])
   const [medications, setMedications] = useState([])
+  const [prescriptions, setPrescriptions] = useState([])
+  const [prescriptionError, setPrescriptionError] = useState('')
+  const [prescriptionsLoading, setPrescriptionsLoading] = useState(false)
   const [reorderRequests, setReorderRequests] = useState(null)
   const [requestQuantities, setRequestQuantities] = useState({})
   const [searchTerm, setSearchTerm] = useState('')
@@ -43,8 +46,7 @@ function PharmacyPage() {
       setError('')
 
       try {
-        const payload = await readJson(`${API_BASE}/api/pharmacies/all?page=0&size=20&sortBy=name&sortDirection=asc`)
-        const nextPharmacies = normalizeList(payload)
+        const nextPharmacies = await readAllPages(`${API_BASE}/api/pharmacies/all?sortBy=name&sortDirection=asc`)
         setPharmacies(nextPharmacies)
 
         if (nextPharmacies.length > 0) {
@@ -101,6 +103,41 @@ function PharmacyPage() {
 
     loadMedicationInventory()
   }, [selectedPharmacyId])
+
+  useEffect(() => {
+    if (!selectedPharmacyId || !canProcessReorderRequests) {
+      setPrescriptions([])
+      return
+    }
+    let active = true
+    const loadPrescriptions = async () => {
+      setPrescriptionsLoading(true)
+      setPrescriptionError('')
+      try {
+        const payload = await readJson(`${API_BASE}/api/prescriptions/pharmacy/${selectedPharmacyId}`)
+        if (active) setPrescriptions(normalizeList(payload))
+      } catch (err) {
+        if (active) setPrescriptionError(err.message || 'Unable to load prescriptions.')
+      } finally {
+        if (active) setPrescriptionsLoading(false)
+      }
+    }
+    loadPrescriptions()
+    return () => { active = false }
+  }, [selectedPharmacyId, canProcessReorderRequests])
+
+  const estimatePrescription = async (prescription) => {
+    setActionLoadingId(`prescription-${prescription.id}`)
+    setPrescriptionError('')
+    try {
+      const payload = await writeJson(`${API_BASE}/api/prescriptions/pharmacy/${selectedPharmacyId}/${prescription.id}/estimate`, { method: 'POST' })
+      setPrescriptions((current) => current.map((item) => item.id === prescription.id ? payload.data : item))
+    } catch (err) {
+      setPrescriptionError(err.message || 'Unable to estimate prescription.')
+    } finally {
+      setActionLoadingId('')
+    }
+  }
 
   const selectedPharmacy = pharmacies.find((pharmacy) => {
     const pharmacyId = pharmacy.id || pharmacy.pharmacyId
@@ -326,6 +363,30 @@ function PharmacyPage() {
                 </div>
               ) : null}
             </div>
+          ) : null}
+
+          {selectedPharmacy && canProcessReorderRequests ? (
+            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+              <h2 className="text-xl font-bold text-slate-900">Prescriptions for {selectedPharmacy.name}</h2>
+              {prescriptionError ? <div role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{prescriptionError}</div> : null}
+              {prescriptionsLoading ? <p className="mt-4 text-sm text-slate-600">Loading prescriptions...</p> : (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="bg-slate-50"><tr><th className="p-3">Patient ID</th><th className="p-3">Medication</th><th className="p-3">Instructions</th><th className="p-3">Quantity</th><th className="p-3">Status</th><th className="p-3">Estimated cost</th><th className="p-3">Action</th></tr></thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {prescriptions.length ? prescriptions.map((prescription) => (
+                        <tr key={prescription.id}>
+                          <td className="p-3">{prescription.patientId}</td><td className="p-3">{prescription.medicationName}</td>
+                          <td className="p-3">{prescription.dosage} / {prescription.frequency}</td><td className="p-3">{prescription.quantity}</td>
+                          <td className="p-3">{prescription.status}</td><td className="p-3">{prescription.status === 'PENDING_PHARMACY_REVIEW' ? 'Not estimated' : prescription.totalCost}</td>
+                          <td className="p-3">{prescription.status === 'PENDING_PHARMACY_REVIEW' ? <button type="button" disabled={actionLoadingId === `prescription-${prescription.id}`} onClick={() => estimatePrescription(prescription)} className="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-60">Estimate cost</button> : null}</td>
+                        </tr>
+                      )) : <tr><td colSpan="7" className="p-4 text-slate-600">No prescriptions for this pharmacy.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           ) : null}
 
           <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">

@@ -357,6 +357,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
                 && !prescription.getPharmacy().getId().toString().equals(pharmacyId)) {
             throw new UserNotAllowedException("This prescription belongs to another pharmacy");
         }
+        if ("DISPENSED".equals(prescription.getStatus())) {
+            throw new UserNotAllowedException("This prescription has already been dispensed");
+        }
 
         Medication medication = medicationRepository.findByNameIgnoreCase(prescription.getMedicationName())
                 .orElseThrow(() -> new ResourceNotFoundException("Medication not found for prescription"));
@@ -374,7 +377,9 @@ public class PharmacyServiceImpl implements IPharmacyService {
             throw new ResourceNotFoundException("Patient not found");
         }
 
-        BigDecimal medicationCost = medication.getUnitPrice().multiply(BigDecimal.valueOf(prescription.getQuantity()));
+        BigDecimal medicationCost = "ESTIMATED".equals(prescription.getStatus())
+                ? prescription.getTotalCost()
+                : medication.getUnitPrice().multiply(BigDecimal.valueOf(prescription.getQuantity()));
 
         Billing billing = new Billing();
         billing.setPatient(patient);

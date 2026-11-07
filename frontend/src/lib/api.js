@@ -136,3 +136,13 @@ export function normalizeList(payload) {
   const firstArray = values.find(Array.isArray)
   return firstArray || []
 }
+
+export async function readAllPages(url, pageSize = 100) {
+  const results = []
+  for (let page = 0; ; page += 1) {
+    const separator = url.includes('?') ? '&' : '?'
+    const items = normalizeList(await readJson(`${url}${separator}page=${page}&size=${pageSize}`))
+    results.push(...items)
+    if (items.length < pageSize) return results
+  }
+}

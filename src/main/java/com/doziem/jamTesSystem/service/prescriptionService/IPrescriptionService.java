@@ -17,6 +17,10 @@ public interface IPrescriptionService {
 
     PrescriptionDto prescribeMedication(PrescriptionDto prescriptionDto, Authentication authentication);
 
+    List<PrescriptionDto> getPharmacyPrescriptions(String pharmacyId);
+
+    PrescriptionDto estimatePrescription(String pharmacyId, String prescriptionId);
+
     PrescriptionDto updatePrescription(String id, PrescriptionDto prescriptionDto, Authentication authentication);
 
     void deletePrescription(String id);

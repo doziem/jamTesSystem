@@ -120,6 +120,7 @@ function DoctorMyPatientsPage() {
   const showError = useErrorRedirect()
   const [doctor, setDoctor] = useState(null)
   const [visits, setVisits] = useState([])
+  const [dashboard, setDashboard] = useState(null)
   const [assignableDoctors, setAssignableDoctors] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -134,12 +135,14 @@ function DoctorMyPatientsPage() {
       const currentDoctor = doctorPayload?.data || doctorPayload
       setDoctor(currentDoctor)
 
-      const [visitPayload, assignablePayload] = await Promise.all([
+      const [visitPayload, assignablePayload, dashboardPayload] = await Promise.all([
         readJson(`${API_BASE}/api/doctors/${currentDoctor.id}/patients`),
         readJson(`${API_BASE}/api/patients/doctors/assignable`),
+        readJson(`${API_BASE}/api/doctors/${currentDoctor.id}/dashboard`),
       ])
       setVisits(normalizeList(visitPayload))
       setAssignableDoctors(normalizeList(assignablePayload))
+      setDashboard(dashboardPayload)
     } catch (err) {
       const nextMessage = err.message || 'Unable to load your assigned patients.'
       setError(nextMessage)
@@ -184,6 +187,17 @@ function DoctorMyPatientsPage() {
       {loading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading your patients...</div> : null}
       {error ? <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
       {message ? <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</div> : null}
+      {!loading && !error ? (
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <h2 className="text-lg font-bold text-slate-900">Recent lab requests and results</h2>
+          {(dashboard?.recentLabReports || []).length ? dashboard.recentLabReports.map((report) => (
+            <div key={report.id} className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+              <Link to={`/patients/${report.patientId}`} className="font-semibold text-blue-700">Patient {report.patientId}</Link>
+              {(report.testResults || []).map((test) => <p key={test.id || test.testName} className="mt-1 text-slate-700">{test.testName}: {test.result || 'Pending result'}</p>)}
+            </div>
+          )) : <p className="mt-2 text-sm text-slate-600">No lab requests yet.</p>}
+        </section>
+      ) : null}
 
       {!loading && !error ? (
         groupedVisits.length > 0 ? (

@@ -7,6 +7,8 @@ import com.doziem.jamTesSystem.response.ApiResponse;
 import com.doziem.jamTesSystem.service.labReportService.ILabReportService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,9 +25,10 @@ public class LabReportController {
 
     // Create a new lab report
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse> createLabReport(@RequestBody LabReportDto dto) {
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<ApiResponse> createLabReport(@RequestBody LabReportDto dto, Authentication authentication) {
         try {
-            return ResponseEntity.ok().body(new ApiResponse(true,"Report Successfully Created" ,labReportService.createLabReport(dto)));
+            return ResponseEntity.ok().body(new ApiResponse(true,"Lab request created" ,labReportService.createLabReport(dto, authentication)));
         }catch (ResourceNotFoundException e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false, e.getMessage()));
         }catch (UserNotAllowedException e){
@@ -38,8 +41,9 @@ public class LabReportController {
 
     // Get all lab reports
     @GetMapping("/patients/all")
-    public ResponseEntity<List<LabReportDto>> getAllLabReports() {
-        return ResponseEntity.ok(labReportService.getAllLabReports());
+    public ResponseEntity<List<LabReportDto>> getAllLabReports(@RequestParam(defaultValue = "0") int page,
+                                                               @RequestParam(defaultValue = "100") int size) {
+        return ResponseEntity.ok(labReportService.getAllLabReports(page, size));
     }
 
     // Get a lab report by ID
@@ -61,12 +65,15 @@ public class LabReportController {
 
     // Update a lab report
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse> updateLabReport(@PathVariable String id, @RequestBody LabReportDto dto) {
+    @PreAuthorize("hasRole('LAB_SCIENTIST')")
+    public ResponseEntity<ApiResponse> updateLabReport(@PathVariable String id, @RequestBody LabReportDto dto, Authentication authentication) {
         try {
-            return ResponseEntity.ok(new ApiResponse(true, "Lab report updated", labReportService.updateLabReport(id, dto)));
+            return ResponseEntity.ok(new ApiResponse(true, "Lab report updated", labReportService.updateLabReport(id, dto, authentication)));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false, e.getMessage()));
         } catch (UserNotAllowedException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, e.getMessage()));
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(false, e.getMessage()));

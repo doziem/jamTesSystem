@@ -56,20 +56,25 @@ public class EmailService {
         }
 
         try {
-            String verificationLink = "http://localhost:8080/auth/verify-email?email=" + email + "&token=" + token;
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromAddress);
-            message.setTo(email);
-            message.setSubject("Verify your email address");
-            message.setText("Hello " + fullName + ",\n\n"
-                    + "Thank you for registering. Please verify your email by clicking the link below:\n"
-                    + verificationLink + "\n\n"
-                    + "If you did not create this account, you can ignore this email.");
+            SimpleMailMessage message = getMessage(email, fullName, token);
             mailSender.send(message);
             log.info("Verification email sent to {}", email);
         } catch (Exception e) {
             log.error("Failed to send verification email to {}: {}", email, e.getMessage(), e);
         }
+    }
+
+    private SimpleMailMessage getMessage(String email, String fullName, String token) {
+        String verificationLink = "http://localhost:8080/auth/verify-email?email=" + email + "&token=" + token;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(email);
+        message.setSubject("Verify your email address");
+        message.setText("Hello " + fullName + ",\n\n"
+                + "Thank you for registering. Please verify your email by clicking the link below:\n"
+                + verificationLink + "\n\n"
+                + "If you did not create this account, you can ignore this email.");
+        return message;
     }
 
     public void sendVerificationReminder(String email, String fullName) {
@@ -79,18 +84,23 @@ public class EmailService {
         }
 
         try {
-            String verificationLink = "http://localhost:8080/auth/verify-email?email=" + email;
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromAddress);
-            message.setTo(email);
-            message.setSubject("Verify your email to continue login");
-            message.setText("Hello " + fullName + ",\n\n"
-                    + "Your email is not verified yet. Please verify it before logging in.\n"
-                    + verificationLink + "\n\n"
-                    + "This reminder was sent because login was attempted without verification.");
+            SimpleMailMessage message = getMessage(email, fullName);
             mailSender.send(message);
         } catch (Exception e) {
             log.error("Failed to send verification reminder to {}: {}", email, e.getMessage(), e);
         }
+    }
+
+    private SimpleMailMessage getMessage(String email, String fullName) {
+        String verificationLink = "http://localhost:8080/auth/verify-email?email=" + email;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(email);
+        message.setSubject("Verify your email to continue login");
+        message.setText("Hello " + fullName + ",\n\n"
+                + "Your email is not verified yet. Please verify it before logging in.\n"
+                + verificationLink + "\n\n"
+                + "This reminder was sent because login was attempted without verification.");
+        return message;
     }
 }

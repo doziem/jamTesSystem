@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface PrescriptionRepository extends JpaRepository<Prescription, String> {
     List<Prescription> findByPatientId(String patientId);
+    List<Prescription> findByPharmacyId(String pharmacyId);
 }

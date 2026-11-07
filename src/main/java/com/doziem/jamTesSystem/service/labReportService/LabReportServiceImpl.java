@@ -16,14 +16,18 @@ import com.doziem.jamTesSystem.repository.LabReportRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
 import com.doziem.jamTesSystem.repository.UserRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@Transactional
 public class LabReportServiceImpl implements ILabReportService{
 
     private final LabReportRepository labReportRepository;
@@ -34,7 +38,12 @@ public class LabReportServiceImpl implements ILabReportService{
 
 
     @Override
-    // Create a new lab report
+    public LabReportDto createLabReport(LabReportDto dto, Authentication authentication) {
+        dto.setRequestedBy(authenticatedUser(authentication, Role.DOCTOR).getId());
+        return createLabReport(dto);
+    }
+
+    @Override
     public LabReportDto createLabReport(LabReportDto dto) {
         Patient patient = patientRepository.findById(dto.getPatientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
@@ -46,14 +55,18 @@ public class LabReportServiceImpl implements ILabReportService{
             throw new UserNotAllowedException("Only a Doctor can request a test");
         }
 
-        LabRequest labRequest = dto.getLabRequestId() == null || dto.getLabRequestId().isBlank()
-                ? null
-                : labRequestRepository.findById(UUID.fromString(dto.getLabRequestId()))
-                .orElseThrow(() -> new ResourceNotFoundException("Lab request not found"));
-
         validateTestResults(dto.getTestResults(), false);
+        LabRequest labRequest = labRequestRepository.save(LabRequest.builder()
+                .patient(patient)
+                .requestedBy(user)
+                .requestDate(LocalDate.now())
+                .build());
 
         LabReport labReport = labReportMapper.toEntity(dto, patient, labRequest);
+        labReport.setId(null);
+        labReport.setRequestDate(labRequest.getRequestDate());
+        labReport.setReportDate(null);
+        labReport.setConductedBy(null);
         labReport.setPatient(patient);
         labReport.setTestResults(mapTestResults(dto.getTestResults(), labReport));
 
@@ -117,7 +130,14 @@ public class LabReportServiceImpl implements ILabReportService{
     }
 
     @Override
-    // Update a lab report
+    public LabReportDto updateLabReport(String id, LabReportDto dto, Authentication authentication) {
+        dto.setConductedBy(authenticatedUser(authentication, Role.LAB_SCIENTIST).getId());
+        dto.setReportDate(LocalDate.now());
+        validateTestResults(dto.getTestResults(), true);
+        return updateLabReport(id, dto);
+    }
+
+    @Override
     public LabReportDto updateLabReport(String id, LabReportDto dto) {
         LabReport labReport = labReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lab Report not found"));
@@ -132,12 +152,16 @@ public class LabReportServiceImpl implements ILabReportService{
             }
             validateLabScientist(dto.getConductedBy());
             validateTestResults(dto.getTestResults(), true);
+            List<String> requestedTests = labReport.getTestResults().stream().map(LabReportEntry::getTestName).sorted().toList();
+            List<String> submittedTests = dto.getTestResults().stream().map(item -> item.getTestName().trim()).sorted().toList();
+            if (!requestedTests.equals(submittedTests)) {
+                throw new IllegalArgumentException("Results must match the requested tests");
+            }
             labReport.getTestResults().clear();
             labReport.getTestResults().addAll(mapTestResults(dto.getTestResults(), labReport));
         }
 
         labReport.setReportDate(dto.getReportDate() != null ? dto.getReportDate() : labReport.getReportDate());
-        labReport.setRequestDate(dto.getRequestDate() != null ? dto.getRequestDate() : labReport.getRequestDate());
         labReport.setConductedBy(dto.getConductedBy() != null ? dto.getConductedBy() : labReport.getConductedBy());
 
         return labReportMapper.toDto(labReportRepository.save(labReport));
@@ -173,8 +197,8 @@ public class LabReportServiceImpl implements ILabReportService{
             if (enforceResults && (item.getResult() == null || item.getResult().isBlank())) {
                 throw new UserNotAllowedException("Each selected test must include a result");
             }
-            if (!enforceResults && (item.getResult() == null || item.getResult().isBlank())) {
-                throw new UserNotAllowedException("Each selected test must include a result");
+            if (!enforceResults && item.getResult() != null && !item.getResult().isBlank()) {
+                throw new UserNotAllowedException("Results must be submitted by a lab scientist");
             }
         }
     }
@@ -182,11 +206,22 @@ public class LabReportServiceImpl implements ILabReportService{
     private List<LabReportEntry> mapTestResults(List<LabTestResultDto> testResults, LabReport labReport) {
         return testResults.stream()
                 .map(item -> LabReportEntry.builder()
-                        .id(item.getId())
                         .labReport(labReport)
                         .testName(item.getTestName().trim())
-                        .result(item.getResult().trim())
+                        .result(item.getResult() == null ? "" : item.getResult().trim())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    private User authenticatedUser(Authentication authentication, Role role) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails details)) {
+            throw new UserNotAllowedException("Authentication is required");
+        }
+        User user = userRepository.findByEmailOrPhone(details.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (user.getRole() != role) {
+            throw new UserNotAllowedException("This operation requires role " + role);
+        }
+        return user;
     }
 }

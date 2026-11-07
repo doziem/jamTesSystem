@@ -135,21 +135,21 @@ class DoctorServiceImplTest {
 
     @Test
     void getDashboardBuildsSummary() {
-        Doctor doctor = Doctor.builder().id("d-1").fullName("John Doe").specialization("GP").build();
+        Doctor doctor = Doctor.builder().id("d-1").user(User.builder().id("u-1").name("John Doe").build()).specialization("GP").build();
         Patient patient = Patient.builder().id("p-1").build();
         Prescription prescription = Prescription.builder()
                 .id("rx-1")
                 .patient(patient)
-                .prescribedBy("d-1")
+                .prescribedBy("u-1")
                 .status("PENDING_PHARMACY_REVIEW")
                 .prescriptionDate("2026-09-08")
                 .build();
-        LabRequest labRequest = LabRequest.builder().id(java.util.UUID.randomUUID()).requestedBy(User.builder().id("d-1").build()).build();
+        LabRequest labRequest = LabRequest.builder().id(java.util.UUID.randomUUID()).requestedBy(User.builder().id("u-1").build()).build();
         LabReport labReport = LabReport.builder().id("lr-1").patient(patient).labRequest(labRequest).build();
 
         when(doctorRepository.findById("d-1")).thenReturn(Optional.of(doctor));
         when(prescriptionRepository.findAll()).thenReturn(List.of(prescription));
-        when(labReportRepository.findByLabRequestRequestedById("d-1")).thenReturn(List.of(labReport));
+        when(labReportRepository.findByLabRequestRequestedById("u-1")).thenReturn(List.of(labReport));
         when(prescriptionMapper.toDto(prescription)).thenReturn(null);
         when(labReportMapper.toDto(labReport)).thenReturn(null);
 

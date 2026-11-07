@@ -44,7 +44,6 @@ function LoginPage({ onLogin, loading, error }) {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <main className="mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8">
         <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-500">React frontend</p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Hospital management portal</h1>
           <p className="mt-3 text-sm text-slate-600 sm:text-base">
             Sign in with your registered email or phone number to access the hospital dashboard.
@@ -316,7 +315,7 @@ function App() {
       <Routes>
       <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} loading={loading} error={error} />} />
       <Route path="/register" element={token ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleRegister} loading={loading} error={error} />} />
-      <Route path="/" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DashboardPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}>{user?.role === 'DOCTOR' ? <DoctorPage /> : <DashboardPage />}</AppLayout></ProtectedRoute>} />
       <Route path="/arrival" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientArrivalPage /></AppLayout></ProtectedRoute>} />
       <Route path="/patients" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientPage /></AppLayout></ProtectedRoute>} />
       <Route path="/patients/:id" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientDetailPage /></AppLayout></ProtectedRoute>} />

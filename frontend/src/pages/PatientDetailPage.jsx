@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { API_BASE, normalizeList, readJson, writeJson } from '../lib/api'
+import { API_BASE, USER_STORAGE_KEY, normalizeList, readAllPages, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const STATUS_FLOW = ['ARRIVED', 'TRIAGED', 'ADMITTED', 'IN_TREATMENT', 'DISCHARGED']
@@ -11,14 +11,12 @@ const DEFAULT_FORM = {
   admissionNotes: '',
   dischargeNotes: '',
 }
-const DEPARTMENT_OPTIONS = ['GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
-
 function formatStatusLabel(status) {
   return (status || 'ARRIVED').replaceAll('_', ' ')
 }
 
-function PrescribeModal({ visit, onClose, onSubmit, submitting }) {
-  const [form, setForm] = useState({ medicationName: '', dosage: '', frequency: '', quantity: 1, department: 'GENERAL' })
+function PrescribeModal({ visit, pharmacies, onClose, onSubmit, submitting }) {
+  const [form, setForm] = useState({ medicationName: '', dosage: '', frequency: '', quantity: 1, pharmacyId: '' })
   const [error, setError] = useState('')
 
   const handleChange = (event) => {
@@ -56,21 +54,22 @@ function PrescribeModal({ visit, onClose, onSubmit, submitting }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Dosage
-              <input name="dosage" value={form.dosage} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="500mg" />
+              <input name="dosage" required value={form.dosage} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="500mg" />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Frequency
-              <input name="frequency" value={form.frequency} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Twice daily" />
+              <input name="frequency" required value={form.frequency} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="Twice daily" />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Quantity
-              <input type="number" min="1" name="quantity" value={form.quantity} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" />
+              <input type="number" min="1" step="1" required name="quantity" value={form.quantity} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Department
-              <select name="department" value={form.department} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
-                {DEPARTMENT_OPTIONS.map((option) => (
-                  <option key={option} value={option}>{option}</option>
+              Department pharmacy
+              <select name="pharmacyId" required value={form.pharmacyId} onChange={handleChange} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500">
+                <option value="">Select pharmacy</option>
+                {pharmacies.map((pharmacy) => (
+                  <option key={pharmacy.id} value={pharmacy.id}>{pharmacy.name} - {pharmacy.department}</option>
                 ))}
               </select>
             </label>
@@ -166,6 +165,7 @@ function PatientDetailPage() {
   const [doctors, setDoctors] = useState([])
   const [workflowForm, setWorkflowForm] = useState({})
   const [currentDoctor, setCurrentDoctor] = useState(null)
+  const [pharmacies, setPharmacies] = useState([])
   const [prescribeTarget, setPrescribeTarget] = useState(null)
   const [referTarget, setReferTarget] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -184,14 +184,15 @@ function PatientDetailPage() {
           dosage: form.dosage,
           frequency: form.frequency,
           quantity: form.quantity,
-          department: form.department,
+          pharmacyId: form.pharmacyId,
           prescribedBy: currentDoctor.userId,
           prescriptionDate: new Date().toISOString().slice(0, 10),
         }),
       })
-      setMessage(`Prescription created for ${prescribeTarget.patientName || 'patient'}.`)
+      setMessage(`Prescription sent to the department pharmacy for cost estimation.`)
       setMessageType('success')
       setPrescribeTarget(null)
+      await loadPatient()
     } finally {
       setSubmitting(false)
     }
@@ -266,11 +267,12 @@ function PatientDetailPage() {
       const doctorPayload = await readJson(`${API_BASE}/api/patients/doctors/assignable`)
       setDoctors(normalizeList(doctorPayload))
 
-      try {
+      const currentUser = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null')
+      if (currentUser?.role === 'DOCTOR') {
         const currentDoctorPayload = await readJson(`${API_BASE}/api/doctors/me`)
         setCurrentDoctor(currentDoctorPayload?.data || currentDoctorPayload)
-      } catch {
-        setCurrentDoctor(null)
+        const pharmacyPayload = await readAllPages(`${API_BASE}/api/pharmacies/all?sortBy=name&sortDirection=asc`)
+        setPharmacies(pharmacyPayload.filter((pharmacy) => !pharmacy.mainPharmacy))
       }
     } catch (err) {
       const nextMessage = err.message || 'Unable to load patient details.'
@@ -351,7 +353,7 @@ function PatientDetailPage() {
                   Prescribe
                 </button>
                 <Link
-                  to={`/lab-reports/new?patientId=${patient.id}&requestedBy=${currentDoctor?.id || ''}`}
+                  to={`/lab-reports/new?patientId=${patient.id}`}
                   className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                 >
                   Request lab
@@ -384,10 +386,11 @@ function PatientDetailPage() {
           <div className="mt-4 space-y-3">
             {(patient.labReports || []).length === 0 ? <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">No lab activity yet.</div> : patient.labReports.map((report) => (
               <div key={report.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-900">{report.testName || 'Lab test'}</div>
-                <div className="mt-1 text-sm text-slate-600">Requested by: {report.requestedBy || 'N/A'}</div>
+                <div className="text-sm font-semibold text-slate-900">Requested by: {report.requestedBy || 'N/A'}</div>
                 <div className="mt-1 text-sm text-slate-600">Report date: {report.reportDate || 'N/A'}</div>
-                <div className="mt-2 text-sm text-slate-700">{report.result || 'Pending result'}</div>
+                {(report.testResults || []).map((test) => (
+                  <div key={test.id || test.testName} className="mt-2 text-sm text-slate-700">{test.testName}: {test.result || 'Pending result'}</div>
+                ))}
               </div>
             ))}
           </div>
@@ -402,7 +405,7 @@ function PatientDetailPage() {
                 <div className="text-sm font-semibold text-slate-900">{prescription.medicationName || 'Medication'}</div>
                 <div className="mt-1 text-sm text-slate-600">{prescription.dosage || 'N/A'} • {prescription.frequency || 'N/A'}</div>
                 <div className="mt-1 text-sm text-slate-600">Status: {prescription.status || 'N/A'}</div>
-                <div className="mt-1 text-sm text-slate-600">Total cost: {prescription.totalCost || '0'}</div>
+                <div className="mt-1 text-sm text-slate-600">Estimated cost: {prescription.status === 'PENDING_PHARMACY_REVIEW' ? 'Awaiting pharmacy review' : prescription.totalCost}</div>
               </div>
             ))}
           </div>
@@ -571,6 +574,7 @@ function PatientDetailPage() {
       {prescribeTarget ? (
         <PrescribeModal
           visit={prescribeTarget}
+          pharmacies={pharmacies}
           submitting={submitting}
           onClose={() => setPrescribeTarget(null)}
           onSubmit={handlePrescribe}

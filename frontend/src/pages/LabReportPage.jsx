@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { API_BASE, normalizeList, readJson } from '../lib/api'
+import { API_BASE, USER_STORAGE_KEY, readAllPages } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 function LabReportPage() {
@@ -8,6 +8,7 @@ function LabReportPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const showError = useErrorRedirect()
+  const role = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null')?.role
 
   useEffect(() => {
     const loadReports = async () => {
@@ -15,8 +16,7 @@ function LabReportPage() {
       setError('')
 
       try {
-        const payload = await readJson(`${API_BASE}/api/lab-reports/patients/all`)
-        setReports(normalizeList(payload))
+        setReports(await readAllPages(`${API_BASE}/api/lab-reports/patients/all`))
       } catch (err) {
         const message = err.message || 'Unable to load lab reports.'
         setError(message)
@@ -36,9 +36,7 @@ function LabReportPage() {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">Lab report operations</div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Lab reports</h1>
         </div>
-        <Link to="/lab-reports/new" className="rounded-xl btn-brand px-4 py-2 text-sm font-semibold transition">
-          Create report
-        </Link>
+        {role === 'DOCTOR' ? <Link to="/lab-reports/new" className="rounded-xl btn-brand px-4 py-2 text-sm font-semibold transition">Request tests</Link> : null}
       </div>
 
       {loading ? <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">Loading lab reports...</div> : null}
@@ -60,9 +58,9 @@ function LabReportPage() {
                     <strong className="block text-base font-semibold text-slate-900">{firstTestName}</strong>
                     <span className="mt-1 block text-sm text-slate-600">Patient #{patientId}</span>
                   </div>
-                  <Link to={`/lab-reports/${reportId}/edit`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
-                    Edit
-                  </Link>
+                  {role === 'LAB_SCIENTIST' ? <Link to={`/lab-reports/${reportId}/edit`} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                    Enter results
+                  </Link> : null}
                 </div>
                 <p className="mt-3 text-sm text-slate-500">Requested by: {requestedBy}</p>
                 <div className="mt-3 grid gap-2">

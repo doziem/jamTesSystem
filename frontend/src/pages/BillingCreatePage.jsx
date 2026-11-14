@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { API_BASE, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
@@ -13,8 +13,9 @@ const initialForm = {
 
 function BillingCreatePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const showError = useErrorRedirect()
-  const [form, setForm] = useState(initialForm)
+  const [form, setForm] = useState(() => ({ ...initialForm, patientId: searchParams.get('patientId') || '' }))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')

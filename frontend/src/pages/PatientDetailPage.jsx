@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { API_BASE, USER_STORAGE_KEY, normalizeList, readAllPages, readJson, writeJson } from '../lib/api'
+import { API_BASE, normalizeList, readAllPages, readJson, writeJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const STATUS_FLOW = ['ARRIVED', 'TRIAGED', 'ADMITTED', 'IN_TREATMENT', 'DISCHARGED']
@@ -272,11 +272,15 @@ function PatientDetailPage() {
         }))
       setDoctors(doctorUsers)
 
-      const currentUser = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null')
-      if (currentUser?.role === 'DOCTOR') {
-        setCurrentDoctor({ userId: currentUser.id, id: currentUser.id, fullName: currentUser.name })
+      const staffPayload = await readJson(`${API_BASE}/api/staff/me`)
+      const currentStaff = staffPayload?.data || staffPayload
+      if (currentStaff?.role === 'DOCTOR') {
+        setCurrentDoctor(currentStaff)
         const pharmacyPayload = await readAllPages(`${API_BASE}/api/pharmacies/all?sortBy=name&sortDirection=asc`)
         setPharmacies(pharmacyPayload.filter((pharmacy) => !pharmacy.mainPharmacy))
+      } else {
+        setCurrentDoctor(null)
+        setPharmacies([])
       }
     } catch (err) {
       const nextMessage = err.message || 'Unable to load patient details.'
@@ -354,13 +358,19 @@ function PatientDetailPage() {
                   onClick={() => setPrescribeTarget(activeVisit)}
                   className="rounded-lg btn-brand px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Prescribe
+                  Create prescription
                 </button>
                 <Link
                   to={`/lab-reports/new?patientId=${patient.id}`}
                   className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                 >
                   Request lab
+                </Link>
+                <Link
+                  to={`/billing/new?patientId=${patient.id}`}
+                  className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                >
+                  Create bill
                 </Link>
                 <button
                   type="button"

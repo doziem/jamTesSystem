@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import DashboardPage from './pages/DashboardPage'
 import PatientPage from './pages/PatientPage'
@@ -6,7 +6,6 @@ import PatientCreatePage from './pages/PatientCreatePage'
 import PatientArrivalPage from './pages/PatientArrivalPage'
 import PatientDetailPage from './pages/PatientDetailPage'
 import DoctorPage from './pages/DoctorPage'
-import DoctorCreatePage from './pages/DoctorCreatePage'
 import PharmacyPage from './pages/PharmacyPage'
 import PharmacyCreatePage from './pages/PharmacyCreatePage'
 import MainPharmacyPage from './pages/MainPharmacyPage'
@@ -19,8 +18,11 @@ import LabReportPage from './pages/LabReportPage'
 import LabReportCreatePage from './pages/LabReportCreatePage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
+import StaffOnboardingPage from './pages/StaffOnboardingPage'
 import { ErrorModalContext } from './lib/useErrorRedirect'
-import { API_BASE, STORAGE_KEY, USER_STORAGE_KEY, getStoredToken, writeJson } from './lib/api'
+import { API_BASE, STORAGE_KEY, USER_STORAGE_KEY, getStoredToken, getTokenExpiryTime, readJson, writeJson } from './lib/api'
+
+const StaffOnboardingContext = createContext({ status: 'loading', retry: () => {} })
 
 async function loginUser({ identifier, password }) {
   const response = await fetch(`${API_BASE}/auth/login`, {
@@ -102,8 +104,28 @@ function LoginPage({ onLogin, loading, error }) {
   )
 }
 
-function ProtectedRoute({ token, children }) {
+function StaffStatusNotice({ status, onRetry }) {
+  if (status === 'loading') {
+    return <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 text-sm text-slate-600">Checking your staff profile...</main>
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+      <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h1 className="text-lg font-bold text-slate-900">Unable to check your staff profile</h1>
+        <p className="mt-2 text-sm text-slate-600">Please try again before continuing.</p>
+        <button type="button" onClick={onRetry} className="mt-5 rounded-xl btn-brand px-4 py-2 text-sm font-semibold">Try again</button>
+      </section>
+    </main>
+  )
+}
+
+function ProtectedRoute({ token, children, allowOnboarding = false }) {
+  const { status, retry } = useContext(StaffOnboardingContext)
   if (!token) return <Navigate to="/login" replace />
+  if (status === 'loading' || status === 'error') return <StaffStatusNotice status={status} onRetry={retry} />
+  if (allowOnboarding && status === 'complete') return <Navigate to="/" replace />
+  if (!allowOnboarding && status === 'required') return <Navigate to="/onboarding" replace />
   return children
 }
 
@@ -238,6 +260,8 @@ function AppLayout({ user, onLogout, children }) {
 
 function App() {
   const [token, setToken] = useState(getStoredToken)
+  const [staffStatus, setStaffStatus] = useState(() => (getStoredToken() ? 'loading' : 'signedOut'))
+  const [staffStatusRetry, setStaffStatusRetry] = useState(0)
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem(USER_STORAGE_KEY)
     return savedUser ? JSON.parse(savedUser) : null
@@ -247,16 +271,55 @@ function App() {
   const [modalError, setModalError] = useState('')
   const navigate = useNavigate()
 
+  const handleSessionExpired = useCallback(() => {
+    setToken('')
+    setUser(null)
+    setStaffStatus('signedOut')
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(USER_STORAGE_KEY)
+    setError('')
+    navigate('/login?message=Token%20expired', { replace: true })
+  }, [navigate])
+
   useEffect(() => {
     if (!token) return undefined
-    const interval = setInterval(() => {
-      if (!getStoredToken()) {
-        setToken('')
-        setUser(null)
-      }
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [token])
+
+    let active = true
+    readJson(`${API_BASE}/api/staff/onboarding-status`)
+      .then((result) => {
+        if (active) setStaffStatus(result?.onboarded ? 'complete' : 'required')
+      })
+      .catch((err) => {
+        if (active) {
+          setStaffStatus('error')
+          setModalError(err.message || 'Unable to check your staff profile.')
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [token, staffStatusRetry])
+
+  useEffect(() => {
+    if (!token) return undefined
+    const expiryTime = getTokenExpiryTime(token)
+    if (typeof expiryTime !== 'number') return undefined
+
+    const remainingMs = expiryTime - Date.now()
+    if (remainingMs <= 0) {
+      const immediateTimeoutId = setTimeout(() => {
+        handleSessionExpired()
+      }, 0)
+      return () => clearTimeout(immediateTimeoutId)
+    }
+
+    const timeoutId = setTimeout(() => {
+      handleSessionExpired()
+    }, remainingMs)
+
+    return () => clearTimeout(timeoutId)
+  }, [token, handleSessionExpired])
 
   const handleLogin =  async ({ identifier, password }) => {
     setLoading(true)
@@ -270,6 +333,7 @@ function App() {
       if (nextToken) {
         localStorage.setItem(STORAGE_KEY, nextToken)
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
+        setStaffStatus('loading')
       }
       navigate('/', { replace: true })
     } catch (err) {
@@ -282,6 +346,7 @@ function App() {
   const handleLogout = () => {
     setToken('')
     setUser(null)
+    setStaffStatus('signedOut')
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
     setError('')
@@ -294,9 +359,10 @@ function App() {
     try {
       await writeJson(`${API_BASE}/auth/register`, {
         method: 'POST',
-        body: JSON.stringify({ ...form, role: form.role || 'STAFF' }),
+        body: JSON.stringify(form),
       })
-      navigate('/login', { replace: true, state: { message: 'Registration successful. Please check your email to verify your account before logging in.' } })
+      navigate('/login', { replace: true, state: {
+        message: 'Registration successful. Please check your email to verify your account before logging in.' } })
     } catch (err) {
       setModalError(err.message || 'Unable to create your account.')
     } finally {
@@ -310,11 +376,26 @@ function App() {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mergedUser))
   }
 
+  const handleOnboardingComplete = (staff) => {
+    const updatedUser = { ...user, role: staff?.role || user?.role || 'STAFF' }
+    setUser(updatedUser)
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser))
+    setStaffStatus('complete')
+    navigate('/', { replace: true })
+  }
+
+  const retryStaffStatus = () => {
+    setStaffStatus('loading')
+    setStaffStatusRetry((current) => current + 1)
+  }
+
   return (
     <ErrorModalContext.Provider value={setModalError}>
-      <Routes>
+      <StaffOnboardingContext.Provider value={{ status: staffStatus, retry: retryStaffStatus }}>
+       <Routes>
       <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} loading={loading} error={error} />} />
       <Route path="/register" element={token ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleRegister} loading={loading} error={error} />} />
+      <Route path="/onboarding" element={<ProtectedRoute token={token} allowOnboarding><StaffOnboardingPage user={user} onComplete={handleOnboardingComplete} onLogout={handleLogout} /></ProtectedRoute>} />
       <Route path="/" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}>{user?.role === 'DOCTOR' ? <DoctorPage /> : <DashboardPage />}</AppLayout></ProtectedRoute>} />
       <Route path="/arrival" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientArrivalPage /></AppLayout></ProtectedRoute>} />
       <Route path="/patients" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientPage /></AppLayout></ProtectedRoute>} />
@@ -322,8 +403,6 @@ function App() {
       <Route path="/patients/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/patients/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PatientCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/doctors" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/doctors/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorCreatePage /></AppLayout></ProtectedRoute>} />
-      <Route path="/doctors/:id/edit" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><DoctorCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/pharmacies" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PharmacyPage /></AppLayout></ProtectedRoute>} />
       <Route path="/pharmacies/new" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><PharmacyCreatePage /></AppLayout></ProtectedRoute>} />
       <Route path="/main-pharmacy" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><MainPharmacyPage /></AppLayout></ProtectedRoute>} />
@@ -339,6 +418,7 @@ function App() {
       <Route path="/profile" element={<ProtectedRoute token={token}><AppLayout user={user} onLogout={handleLogout}><ProfilePage user={user} token={token} onUserUpdate={handleUserUpdate} /></AppLayout></ProtectedRoute>} />
       <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
       </Routes>
+      </StaffOnboardingContext.Provider>
       {modalError ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" role="presentation">
           <section

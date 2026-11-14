@@ -2,8 +2,14 @@ package com.doziem.jamTesSystem.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.core.env.PropertiesPropertySource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.mock.env.MockEnvironment;
+
+import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,5 +42,28 @@ class MailConfigTest {
                     assertThat(context).hasNotFailed().hasSingleBean(JavaMailSender.class);
                     assertThat(context.getBean(JavaMailSenderImpl.class).getPort()).isEqualTo(-1);
                 });
+    }
+
+    @Test
+    void emailAddressesUseDefaultsWhenMailUsernameIsMissing() throws IOException {
+        MockEnvironment environment = applicationEnvironment();
+
+        assertThat(environment.getProperty("app.email.from")).isEqualTo("no-reply@localhost");
+        assertThat(environment.getProperty("pharmacy.warning.email.to")).isEqualTo("admin@localhost");
+    }
+
+    @Test
+    void emailAddressesUseConfiguredMailUsername() throws IOException {
+        MockEnvironment environment = applicationEnvironment().withProperty("MAIL_USERNAME", "sender@example.com");
+
+        assertThat(environment.getProperty("app.email.from")).isEqualTo("sender@example.com");
+        assertThat(environment.getProperty("pharmacy.warning.email.to")).isEqualTo("sender@example.com");
+    }
+
+    private MockEnvironment applicationEnvironment() throws IOException {
+        MockEnvironment environment = new MockEnvironment();
+        environment.getPropertySources().addLast(new PropertiesPropertySource("application",
+                PropertiesLoaderUtils.loadProperties(new ClassPathResource("application.properties"))));
+        return environment;
     }
 }

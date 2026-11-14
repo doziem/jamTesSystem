@@ -264,13 +264,17 @@ function PatientDetailPage() {
         }, {}),
       )
 
-      const doctorPayload = await readJson(`${API_BASE}/api/patients/doctors/assignable`)
-      setDoctors(normalizeList(doctorPayload))
+      const doctorPayload = await readJson(`${API_BASE}/api/staff?role=DOCTOR`)
+      const doctorUsers = (Array.isArray(doctorPayload) ? doctorPayload : normalizeList(doctorPayload))
+        .map((user) => ({
+          id: user.id || '',
+          fullName: user.fullName || '',
+        }))
+      setDoctors(doctorUsers)
 
       const currentUser = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null')
       if (currentUser?.role === 'DOCTOR') {
-        const currentDoctorPayload = await readJson(`${API_BASE}/api/doctors/me`)
-        setCurrentDoctor(currentDoctorPayload?.data || currentDoctorPayload)
+        setCurrentDoctor({ userId: currentUser.id, id: currentUser.id, fullName: currentUser.name })
         const pharmacyPayload = await readAllPages(`${API_BASE}/api/pharmacies/all?sortBy=name&sortDirection=asc`)
         setPharmacies(pharmacyPayload.filter((pharmacy) => !pharmacy.mainPharmacy))
       }

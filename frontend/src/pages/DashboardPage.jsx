@@ -16,7 +16,7 @@ function DashboardPage() {
       try {
         const [patientsResponse, doctorsResponse, pharmaciesResponse, billingsResponse] = await Promise.all([
           readJson(`${API_BASE}/api/patients/all?page=0&size=5`),
-          readJson(`${API_BASE}/api/doctors/all`),
+          readJson(`${API_BASE}/api/staff?role=DOCTOR`),
           readJson(`${API_BASE}/api/pharmacies/all?page=0&size=5&sortBy=name&sortDirection=asc`),
           readJson(`${API_BASE}/api/billing/patient/all?page=0&size=5`),
         ])

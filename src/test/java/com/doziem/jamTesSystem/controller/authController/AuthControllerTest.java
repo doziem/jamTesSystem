@@ -14,9 +14,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,7 +34,7 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService, "http://localhost:3000/login")).build();
         objectMapper = new ObjectMapper();
     }
 
@@ -85,5 +88,17 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Email verified successfully"));
+    }
+
+    @Test
+    void verifyEmailGetRedirectsToLoginWithMessage() throws Exception {
+        when(authService.verifyEmail("jane@example.com", "token")).thenReturn(
+                new com.doziem.jamTesSystem.response.ApiResponse(true, "Email verified successfully", "jane@example.com")
+        );
+
+        mockMvc.perform(get("/auth/verify-email?email=jane@example.com&token=token"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", containsString("http://localhost:3000/login?message=")))
+                .andExpect(header().string("Location", containsString("Email%20verified%20successfully")));
     }
 }

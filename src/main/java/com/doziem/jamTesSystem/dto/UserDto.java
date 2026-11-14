@@ -1,6 +1,5 @@
 package com.doziem.jamTesSystem.dto;
 
-import com.doziem.jamTesSystem.constant.Role;
 import com.doziem.jamTesSystem.model.User;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -25,7 +24,6 @@ public class UserDto {
         @JsonProperty("phone")
         private String phone;
 
-        private Role role;
         private boolean active;
         private boolean verified;
         private String emailVerificationToken;

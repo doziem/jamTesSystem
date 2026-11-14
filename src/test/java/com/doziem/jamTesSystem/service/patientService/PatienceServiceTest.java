@@ -3,20 +3,20 @@ package com.doziem.jamTesSystem.service.patientService;
 import com.doziem.jamTesSystem.dto.EncounterDto;
 import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
+import com.doziem.jamTesSystem.constant.Role;
 import com.doziem.jamTesSystem.exceptions.InvalidResourceException;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.mapper.EncounterMapper;
 import com.doziem.jamTesSystem.mapper.PatientMapper;
-import com.doziem.jamTesSystem.mapper.DoctorMapper;
-import com.doziem.jamTesSystem.model.Doctor;
 import com.doziem.jamTesSystem.model.Encounter;
 import com.doziem.jamTesSystem.model.Patient;
+import com.doziem.jamTesSystem.model.Staff;
 import com.doziem.jamTesSystem.repository.BillingRepository;
-import com.doziem.jamTesSystem.repository.DoctorRepository;
 import com.doziem.jamTesSystem.repository.EncounterRepository;
 import com.doziem.jamTesSystem.repository.LabReportRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
 import com.doziem.jamTesSystem.repository.PrescriptionRepository;
+import com.doziem.jamTesSystem.repository.StaffRepository;
 import com.doziem.jamTesSystem.request.EncounterStatusRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,7 +51,7 @@ class PatienceServiceTest {
     private EncounterMapper encounterMapper;
 
     @Mock
-    private DoctorRepository doctorRepository;
+    private StaffRepository staffRepository;
 
     @Mock
     private PrescriptionRepository prescriptionRepository;
@@ -61,9 +61,6 @@ class PatienceServiceTest {
 
     @Mock
     private BillingRepository billingRepository;
-
-    @Mock
-    private DoctorMapper doctorMapper;
 
     @InjectMocks
     private PatienceService patienceService;
@@ -230,8 +227,8 @@ class PatienceServiceTest {
 
         EncounterDto dto = EncounterDto.builder().id("e-1").patientId("p-1").status("TRIAGED").build();
 
-        Doctor doctor = Doctor.builder().id("d-1").fullName("Jane Doe").build();
-        when(doctorRepository.findById("d-1")).thenReturn(Optional.of(doctor));
+        Staff doctor = Staff.builder().id("d-1").firstName("Jane").lastName("Doe").role(Role.DOCTOR).build();
+        when(staffRepository.findById("d-1")).thenReturn(Optional.of(doctor));
         when(encounterRepository.findById("e-1")).thenReturn(Optional.of(encounter));
         when(encounterRepository.save(any(Encounter.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(encounterMapper.toDto(any(Encounter.class))).thenReturn(dto);
@@ -275,11 +272,8 @@ class PatienceServiceTest {
 
     @Test
     void getAssignableDoctorsReturnsMappedDoctors() {
-        Doctor doctor = Doctor.builder().id("d-1").fullName("Jane Doe").build();
-        DoctorDto doctorDto = DoctorDto.builder().id("d-1").fullName("Jane Doe").build();
-
-        when(doctorRepository.findAll()).thenReturn(List.of(doctor));
-        when(doctorMapper.toDto(doctor)).thenReturn(doctorDto);
+        Staff doctor = Staff.builder().id("d-1").firstName("Jane").lastName("Doe").role(Role.DOCTOR).build();
+        when(staffRepository.findByRole(Role.DOCTOR)).thenReturn(List.of(doctor));
 
         List<DoctorDto> result = patienceService.getAssignableDoctors();
 

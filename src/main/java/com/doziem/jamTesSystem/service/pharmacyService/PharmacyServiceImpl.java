@@ -43,6 +43,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
     private final PharmacyReorderRequestRepository pharmacyReorderRequestRepository;
     private final MedicationRepository medicationRepository;
     private final UserRepository userRepository;
+    private final StaffRepository staffRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final BillingRepository billingRepository;
     private final EmailService emailService;
@@ -55,6 +56,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
             PharmacyReorderRequestRepository pharmacyReorderRequestRepository,
             MedicationRepository medicationRepository,
             UserRepository userRepository,
+            StaffRepository staffRepository,
             PrescriptionRepository prescriptionRepository,
             BillingRepository billingRepository,
             EmailService emailService,
@@ -65,6 +67,7 @@ public class PharmacyServiceImpl implements IPharmacyService {
         this.pharmacyReorderRequestRepository = pharmacyReorderRequestRepository;
         this.medicationRepository = medicationRepository;
         this.userRepository = userRepository;
+        this.staffRepository = staffRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.billingRepository = billingRepository;
         this.emailService = emailService;
@@ -227,9 +230,10 @@ public class PharmacyServiceImpl implements IPharmacyService {
     }
 
     private boolean canProcessReorderRequests(User user) {
-        return user.getRole() == Role.SUPERVISOR
-                || user.getRole() == Role.ADMIN
-                || user.getRole() == Role.PHARMACIST;
+        Role role = staffRepository.findByUser_Id(user.getId()).map(Staff::getRole).orElse(Role.STAFF);
+        return role == Role.SUPERVISOR
+                || role == Role.ADMIN
+                || role == Role.PHARMACIST;
     }
 /**
  * Adds a specified quantity of medication to a pharmacy's inventory.

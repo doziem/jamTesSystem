@@ -8,5 +8,9 @@ public enum Role {
     PHARMACIST,
     STAFF,
     PATIENT,
-    LAB_SCIENTIST
+    LAB_SCIENTIST,
+    RADIOLOGIST,
+    RECEPTIONIST,
+    ACCOUNTANT,
+    HR
 }

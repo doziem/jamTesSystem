@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { API_BASE, USER_STORAGE_KEY, normalizeList, readJson, writeJson } from '../lib/api'
+import { API_BASE, USER_STORAGE_KEY, normalizeList, readAllPages, readJson } from '../lib/api'
 import { useErrorRedirect } from '../lib/useErrorRedirect'
 
 const DEPARTMENT_OPTIONS = ['GENERAL', 'CARDIOLOGY', 'ORTHOPEDICS', 'PEDIATRICS', 'NEUROLOGY', 'DERMATOLOGY', 'LABORATORY']
@@ -43,6 +43,42 @@ function calculateAge(dob) {
 
 function formatStatusLabel(status) {
   return (status || 'ARRIVED').replaceAll('_', ' ')
+}
+
+function buildVisit(patient, encounter) {
+  const firstName = patient?.firstName || ''
+  const lastName = patient?.lastName || ''
+  return {
+    encounterId: encounter?.id,
+    patientId: patient?.id,
+    mrn: patient?.mrn,
+    patientName: `${firstName} ${lastName}`.trim() || patient?.name || 'N/A',
+    phone: patient?.phone || 'N/A',
+    gender: patient?.gender || 'N/A',
+    dateOfBirth: patient?.dateOfBirth || null,
+    visitType: encounter?.visitType || 'OPD',
+    status: encounter?.status || 'ARRIVED',
+    departmentName: encounter?.departmentName || 'Reception',
+    arrivalTime: encounter?.arrivalTime || null,
+    triageNotes: encounter?.triageNotes || '',
+    assignedDoctorId: encounter?.assignedDoctorId || '',
+    assignedDoctorName: encounter?.assignedDoctorName || '',
+  }
+}
+
+async function loadAssignedVisits() {
+  const patients = await readAllPages(`${API_BASE}/api/patients/all`)
+  const visitGroups = await Promise.all(
+    (patients || []).map(async (patient) => {
+      if (!patient?.id) return []
+      const historyPayload = await readJson(`${API_BASE}/api/patients/${patient.id}/history`)
+      return normalizeList(historyPayload).map((encounter) => buildVisit(patient, encounter))
+    }),
+  )
+
+  return visitGroups
+    .flat()
+    .filter((visit) => visit.assignedDoctorId || visit.assignedDoctorName)
 }
 
 function PrescribeModal({ visit, onClose, onSubmit, submitting }) {
@@ -120,8 +156,7 @@ function DoctorMyPatientsPage() {
   const showError = useErrorRedirect()
   const [doctor, setDoctor] = useState(null)
   const [visits, setVisits] = useState([])
-  const [dashboard, setDashboard] = useState(null)
-  const [assignableDoctors, setAssignableDoctors] = useState([])
+  const [recentLabReports, setRecentLabReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -131,18 +166,36 @@ function DoctorMyPatientsPage() {
     setError('')
 
     try {
-      const doctorPayload = await readJson(`${API_BASE}/api/doctors/me`)
-      const currentDoctor = doctorPayload?.data || doctorPayload
-      setDoctor(currentDoctor)
+      const currentUser = getStoredUser()
+      const currentStaffPayload = await readJson(`${API_BASE}/api/staff/me`)
+      const currentDoctor = currentStaffPayload?.data || currentStaffPayload
+      setDoctor({
+        id: currentDoctor?.id || '',
+        fullName: currentDoctor?.fullName || currentUser?.name || '',
+        specialization: currentDoctor?.specialty || '',
+      })
 
-      const [visitPayload, assignablePayload, dashboardPayload] = await Promise.all([
-        readJson(`${API_BASE}/api/doctors/${currentDoctor.id}/patients`),
-        readJson(`${API_BASE}/api/patients/doctors/assignable`),
-        readJson(`${API_BASE}/api/doctors/${currentDoctor.id}/dashboard`),
-      ])
-      setVisits(normalizeList(visitPayload))
-      setAssignableDoctors(normalizeList(assignablePayload))
-      setDashboard(dashboardPayload)
+      const visitPayload = await loadAssignedVisits()
+      setVisits(
+        visitPayload.filter((visit) => (visit.assignedDoctorId || '').trim() === (currentDoctor?.id || '').trim()),
+      )
+
+      if (currentUser?.id) {
+        const reports = await readAllPages(`${API_BASE}/api/lab-reports/patients/all`)
+        setRecentLabReports(
+          reports
+            .filter((report) => report?.requestedBy === currentUser.id)
+            .slice()
+            .sort((a, b) => {
+            const left = a?.reportDate || ''
+            const right = b?.reportDate || ''
+            return right.localeCompare(left)
+            })
+            .slice(0, 5),
+        )
+      } else {
+        setRecentLabReports([])
+      }
     } catch (err) {
       const nextMessage = err.message || 'Unable to load your assigned patients.'
       setError(nextMessage)
@@ -190,7 +243,7 @@ function DoctorMyPatientsPage() {
       {!loading && !error ? (
         <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <h2 className="text-lg font-bold text-slate-900">Recent lab requests and results</h2>
-          {(dashboard?.recentLabReports || []).length ? dashboard.recentLabReports.map((report) => (
+          {recentLabReports.length ? recentLabReports.map((report) => (
             <div key={report.id} className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm">
               <Link to={`/patients/${report.patientId}`} className="font-semibold text-blue-700">Patient {report.patientId}</Link>
               {(report.testResults || []).map((test) => <p key={test.id || test.testName} className="mt-1 text-slate-700">{test.testName}: {test.result || 'Pending result'}</p>)}
@@ -271,8 +324,8 @@ function AllAssignedPatientsPage() {
       setError('')
 
       try {
-        const payload = await readJson(`${API_BASE}/api/doctors/patients/all`)
-        setVisits(normalizeList(payload))
+        const payload = await loadAssignedVisits()
+        setVisits(payload)
       } catch (err) {
         const message = err.message || 'Unable to load assigned patients.'
         setError(message)

@@ -1,25 +1,25 @@
 package com.doziem.jamTesSystem.service.patientService;
 
+import com.doziem.jamTesSystem.constant.Role;
 import com.doziem.jamTesSystem.dto.EncounterDto;
 import com.doziem.jamTesSystem.dto.DoctorDto;
 import com.doziem.jamTesSystem.dto.PatientDto;
 import com.doziem.jamTesSystem.exceptions.InvalidResourceException;
 import com.doziem.jamTesSystem.exceptions.ResourceNotFoundException;
 import com.doziem.jamTesSystem.mapper.BillingMapper;
-import com.doziem.jamTesSystem.mapper.DoctorMapper;
 import com.doziem.jamTesSystem.mapper.EncounterMapper;
 import com.doziem.jamTesSystem.mapper.LabReportMapper;
 import com.doziem.jamTesSystem.mapper.PatientMapper;
 import com.doziem.jamTesSystem.mapper.PrescriptionMapper;
-import com.doziem.jamTesSystem.model.Doctor;
 import com.doziem.jamTesSystem.model.Encounter;
 import com.doziem.jamTesSystem.model.Patient;
+import com.doziem.jamTesSystem.model.Staff;
 import com.doziem.jamTesSystem.repository.BillingRepository;
-import com.doziem.jamTesSystem.repository.DoctorRepository;
 import com.doziem.jamTesSystem.repository.EncounterRepository;
 import com.doziem.jamTesSystem.repository.LabReportRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
 import com.doziem.jamTesSystem.repository.PrescriptionRepository;
+import com.doziem.jamTesSystem.repository.StaffRepository;
 import com.doziem.jamTesSystem.request.EncounterStatusRequest;
 import com.doziem.jamTesSystem.request.PatientArrivalRequest;
 import com.doziem.jamTesSystem.response.PatientArrivalResponse;
@@ -42,11 +42,10 @@ import java.util.stream.Collectors;
 public class PatienceService implements IPatientService{
     private final PatientRepository patientRepository;
     private final EncounterRepository encounterRepository;
-    private final DoctorRepository doctorRepository;
+    private final StaffRepository staffRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final LabReportRepository labReportRepository;
     private final BillingRepository billingRepository;
-    private final DoctorMapper doctorMapper;
     private final BillingMapper billingMapper;
     private final LabReportMapper labReportMapper;
     private final PrescriptionMapper prescriptionMapper;
@@ -175,8 +174,15 @@ public class PatienceService implements IPatientService{
     @Override
     @Transactional(readOnly = true)
     public List<DoctorDto> getAssignableDoctors() {
-        return doctorRepository.findAll().stream()
-                .map(doctorMapper::toDto)
+        return staffRepository.findByRole(Role.DOCTOR).stream()
+                .map(staff -> DoctorDto.builder()
+                        .id(staff.getId())
+                        .fullName((staff.getFirstName() + " " + staff.getLastName()).trim())
+                        .specialization(staff.getSpecialty())
+                        .userId(staff.getUser() != null ? staff.getUser().getId() : null)
+                        .email(staff.getEmail())
+                        .phoneNumber(staff.getPhone())
+                        .build())
                 .collect(Collectors.toList());
     }
 
@@ -300,10 +306,14 @@ public class PatienceService implements IPatientService{
             return;
         }
 
-        Doctor doctor = doctorRepository.findById(doctorId.trim())
+        String normalizedDoctorId = doctorId.trim();
+        Staff doctor = staffRepository.findById(normalizedDoctorId)
+                .filter(staff -> staff.getRole() == Role.DOCTOR)
+                .or(() -> staffRepository.findByUser_Id(normalizedDoctorId)
+                        .filter(staff -> staff.getRole() == Role.DOCTOR))
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
         encounter.setAssignedDoctorId(doctor.getId());
-        encounter.setAssignedDoctorName(doctor.getFullName());
+        encounter.setAssignedDoctorName((doctor.getFirstName() + " " + doctor.getLastName()).trim());
     }
 
     private String normalizeEncounterStatus(String rawStatus) {

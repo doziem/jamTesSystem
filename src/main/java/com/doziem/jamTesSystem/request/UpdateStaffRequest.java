@@ -1,4 +1,9 @@
 package com.doziem.jamTesSystem.request;
 
-public class UpdateStaffRequest {
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class UpdateStaffRequest extends StaffRequest {
 }

@@ -24,8 +24,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -128,5 +130,27 @@ class AuthServiceTest {
         assertNotNull(response);
         assertEquals("User created successfully. Please check your email for verification.", response.getMessage());
         assertEquals("jane@example.com", response.getEmail());
+    }
+
+    @Test
+    void loginForUnverifiedUserSendsVerificationLinkAndFailsLogin() {
+        AuthRequest request = new AuthRequest();
+        request.setEmailOrPhone("jane@example.com");
+        request.setPassword("Secret123");
+
+        User user = User.builder()
+                .id("u-1")
+                .name("Jane Doe")
+                .email("jane@example.com")
+                .verified(false)
+                .emailVerificationToken("token-123")
+                .build();
+
+        when(userRepository.findByEmailOrPhone("jane@example.com")).thenReturn(Optional.of(user));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authService.login(request));
+
+        assertEquals("Email not verified. A verification link has been sent to your email. Please verify and log in again.", exception.getMessage());
+        verify(emailService).sendVerificationReminder("jane@example.com", "Jane Doe", "token-123");
     }
 }

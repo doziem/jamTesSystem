@@ -68,7 +68,6 @@ public class UserServiceImpl implements IUserService {
         return userRepository.findById(id).map(user -> {
             if (dto.getName() != null) user.setName(dto.getName());
             if (dto.getEmail() != null) user.setEmail(dto.getEmail());
-            if (dto.getRole() != null) user.setRole(dto.getRole());
             if (dto.getPhone() != null) user.setPhone(dto.getPhone());
             if (dto.isActive() != user.isActive()) user.setActive(dto.isActive());
             if (password != null && !password.isBlank()) {

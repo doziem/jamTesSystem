@@ -9,11 +9,13 @@ import com.doziem.jamTesSystem.model.Medication;
 import com.doziem.jamTesSystem.model.Patient;
 import com.doziem.jamTesSystem.model.Pharmacy;
 import com.doziem.jamTesSystem.model.Prescription;
+import com.doziem.jamTesSystem.model.Staff;
 import com.doziem.jamTesSystem.model.User;
 import com.doziem.jamTesSystem.repository.MedicationRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
 import com.doziem.jamTesSystem.repository.PharmacyRepository;
 import com.doziem.jamTesSystem.repository.PrescriptionRepository;
+import com.doziem.jamTesSystem.repository.StaffRepository;
 import com.doziem.jamTesSystem.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -39,6 +41,9 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private StaffRepository staffRepository;
 
     @Autowired
     private MedicationRepository medicationRepository;
@@ -105,7 +110,7 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
         User doctor = userRepository.findById(prescriptionDto.getPrescribedBy())
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
 
-        if (doctor.getRole() != Role.DOCTOR) {
+        if (resolveRole(doctor.getId()) != Role.DOCTOR) {
             throw new UserNotAllowedException("Only doctors can prescribe medication");
         }
 
@@ -145,8 +150,14 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
         }
 
         return userRepository.findByEmailOrPhone(userDetails.getUsername())
-                .map(user -> user.getId() != null && user.getId().equals(doctorId) && user.getRole() == Role.DOCTOR)
+                .map(user -> user.getId() != null && user.getId().equals(doctorId) && resolveRole(user.getId()) == Role.DOCTOR)
                 .orElse(false);
+    }
+
+    private Role resolveRole(String userId) {
+        return staffRepository.findByUser_Id(userId)
+                .map(Staff::getRole)
+                .orElse(Role.STAFF);
     }
 
     @Override

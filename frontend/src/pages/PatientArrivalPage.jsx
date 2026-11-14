@@ -59,8 +59,15 @@ function PatientArrivalPage() {
   useEffect(() => {
     const loadDoctors = async () => {
       try {
-        const payload = await readJson(`${API_BASE}/api/patients/doctors/assignable`)
-        setDoctors(normalizeList(payload))
+        const payload = await readJson(`${API_BASE}/api/staff?role=DOCTOR`)
+        const users = Array.isArray(payload) ? payload : normalizeList(payload)
+        setDoctors(
+          users
+            .map((user) => ({
+              id: user.id || '',
+              fullName: user.fullName || '',
+            })),
+        )
       } catch (err) {
         setError(err.message || 'Unable to load doctors.')
       } finally {

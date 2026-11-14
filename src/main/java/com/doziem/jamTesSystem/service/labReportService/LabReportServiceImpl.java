@@ -10,10 +10,12 @@ import com.doziem.jamTesSystem.model.LabReportEntry;
 import com.doziem.jamTesSystem.model.LabRequest;
 import com.doziem.jamTesSystem.model.LabReport;
 import com.doziem.jamTesSystem.model.Patient;
+import com.doziem.jamTesSystem.model.Staff;
 import com.doziem.jamTesSystem.model.User;
 import com.doziem.jamTesSystem.repository.LabRequestRepository;
 import com.doziem.jamTesSystem.repository.LabReportRepository;
 import com.doziem.jamTesSystem.repository.PatientRepository;
+import com.doziem.jamTesSystem.repository.StaffRepository;
 import com.doziem.jamTesSystem.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -34,6 +36,7 @@ public class LabReportServiceImpl implements ILabReportService{
     private final LabRequestRepository labRequestRepository;
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
+    private final StaffRepository staffRepository;
     private final LabReportMapper labReportMapper;
 
 
@@ -51,7 +54,7 @@ public class LabReportServiceImpl implements ILabReportService{
         User user = userRepository.findById(dto.getRequestedBy())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (user.getRole() != Role.DOCTOR) {
+        if (resolveRole(user.getId()) != Role.DOCTOR) {
             throw new UserNotAllowedException("Only a Doctor can request a test");
         }
 
@@ -180,7 +183,7 @@ public class LabReportServiceImpl implements ILabReportService{
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lab scientist not found"));
 
-        if (user.getRole() != Role.LAB_SCIENTIST) {
+        if (resolveRole(user.getId()) != Role.LAB_SCIENTIST) {
             throw new UserNotAllowedException("Only a Lab Scientist is allowed to send a lab result");
         }
     }
@@ -219,9 +222,15 @@ public class LabReportServiceImpl implements ILabReportService{
         }
         User user = userRepository.findByEmailOrPhone(details.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        if (user.getRole() != role) {
+        if (resolveRole(user.getId()) != role) {
             throw new UserNotAllowedException("This operation requires role " + role);
         }
         return user;
+    }
+
+    private Role resolveRole(String userId) {
+        return staffRepository.findByUser_Id(userId)
+                .map(Staff::getRole)
+                .orElse(Role.STAFF);
     }
 }

@@ -1,6 +1,5 @@
 package com.doziem.jamTesSystem.model;
 
-import com.doziem.jamTesSystem.constant.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -36,9 +35,6 @@ public class User {
 
     @NotBlank(message = "Password is required")
     private String password;
-
-    @Enumerated(EnumType.STRING)
-    private Role role;
 
     private boolean active;
 

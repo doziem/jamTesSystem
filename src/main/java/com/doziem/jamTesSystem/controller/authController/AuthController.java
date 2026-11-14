@@ -6,18 +6,26 @@ import com.doziem.jamTesSystem.request.AuthRequest;
 import com.doziem.jamTesSystem.response.AuthResponse;
 import com.doziem.jamTesSystem.response.ApiResponse;
 import com.doziem.jamTesSystem.service.authService.IAuthService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
     private final IAuthService authService;
-    public AuthController(IAuthService authService) {
+    private final String frontendLoginUrl;
+
+    public AuthController(IAuthService authService,
+                          @Value("${app.frontend.login-url:http://localhost:3000/login}") String frontendLoginUrl) {
         this.authService = authService;
+        this.frontendLoginUrl = frontendLoginUrl;
     }
 
     @PostMapping("/login")
@@ -40,7 +48,7 @@ public class AuthController {
         }
     }
 
-    @RequestMapping(value = "/verify-email", method = {RequestMethod.GET, RequestMethod.POST})
+    @PostMapping("/verify-email")
     public ResponseEntity<ApiResponse> verifyEmail(@RequestParam String email, @RequestParam(required = false) String token) {
         try {
             return ResponseEntity.ok(authService.verifyEmail(email, token));
@@ -51,6 +59,20 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/verify-email")
+    public ResponseEntity<Void> verifyEmailAndRedirect(@RequestParam String email, @RequestParam(required = false) String token) {
+        try {
+            authService.verifyEmail(email, token);
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(buildLoginRedirectUri("Email verified successfully. You can now log in."))
+                    .build();
+        } catch (ResourceNotFoundException | IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(buildLoginRedirectUri(ex.getMessage()))
+                    .build();
+        }
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UserDto> me(Authentication authentication) {
         try {
@@ -58,5 +80,12 @@ public class AuthController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+    }
+
+    private URI buildLoginRedirectUri(String message) {
+        return UriComponentsBuilder.fromUriString(frontendLoginUrl)
+                .queryParam("message", message)
+                .build(true)
+                .toUri();
     }
 }

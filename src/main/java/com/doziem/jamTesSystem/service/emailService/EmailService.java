@@ -1,5 +1,6 @@
 package com.doziem.jamTesSystem.service.emailService;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
+@RequiredArgsConstructor
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
@@ -20,10 +22,6 @@ public class EmailService {
 
     @Value("${app.email.from:no-reply@localhost}")
     private String fromAddress;
-
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
-    }
 
     public void sendLowStockWarning(String pharmacyName, String department, String medicationName, int quantityInStock) {
         if (mailSender == null || !StringUtils.hasText(recipient) || "admin@localhost".equals(recipient)) {
@@ -50,57 +48,41 @@ public class EmailService {
     }
 
     public void sendVerificationEmail(String email, String fullName, String token) {
-        if (mailSender == null || !StringUtils.hasText(email)) {
-            log.warn("Verification email not sent because recipient email is missing. Email: {}", email);
-            return;
+        if (!StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("Recipient email is required for verification email.");
         }
-
-        try {
-            SimpleMailMessage message = getMessage(email, fullName, token);
-            mailSender.send(message);
-            log.info("Verification email sent to {}", email);
-        } catch (Exception e) {
-            log.error("Failed to send verification email to {}: {}", email, e.getMessage(), e);
+        if (!StringUtils.hasText(token)) {
+            throw new IllegalArgumentException("Verification token is required.");
         }
+        SimpleMailMessage message = getVerificationMessage(email, fullName, token, "Verify your email address",
+                "Thank you for registering. Please verify your email by clicking the link below:");
+        mailSender.send(message);
+        log.info("Verification email sent to {}", email);
     }
 
-    private SimpleMailMessage getMessage(String email, String fullName, String token) {
+    private SimpleMailMessage getVerificationMessage(String email, String fullName, String token, String subject, String bodyIntro) {
         String verificationLink = "http://localhost:8080/auth/verify-email?email=" + email + "&token=" + token;
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(email);
-        message.setSubject("Verify your email address");
+        message.setSubject(subject);
         message.setText("Hello " + fullName + ",\n\n"
-                + "Thank you for registering. Please verify your email by clicking the link below:\n"
+                + bodyIntro + "\n"
                 + verificationLink + "\n\n"
                 + "If you did not create this account, you can ignore this email.");
         return message;
     }
 
-    public void sendVerificationReminder(String email, String fullName) {
-        if (mailSender == null || !StringUtils.hasText(email)) {
-            log.warn("Verification reminder email not sent because recipient email is missing. Email: {}", email);
-            return;
+    public void sendVerificationReminder(String email, String fullName, String token) {
+        if (!StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("Recipient email is required for verification reminder.");
         }
-
-        try {
-            SimpleMailMessage message = getMessage(email, fullName);
-            mailSender.send(message);
-        } catch (Exception e) {
-            log.error("Failed to send verification reminder to {}: {}", email, e.getMessage(), e);
+        if (!StringUtils.hasText(token)) {
+            throw new IllegalArgumentException("Verification token is required.");
         }
-    }
-
-    private SimpleMailMessage getMessage(String email, String fullName) {
-        String verificationLink = "http://localhost:8080/auth/verify-email?email=" + email;
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromAddress);
-        message.setTo(email);
-        message.setSubject("Verify your email to continue login");
-        message.setText("Hello " + fullName + ",\n\n"
-                + "Your email is not verified yet. Please verify it before logging in.\n"
-                + verificationLink + "\n\n"
-                + "This reminder was sent because login was attempted without verification.");
-        return message;
+        SimpleMailMessage message = getVerificationMessage(email, fullName, token, "Verify your email to continue login",
+                "Your email is not verified yet. Please verify it before logging in:");
+        mailSender.send(message);
+        log.info("Verification reminder email sent to {}", email);
     }
 }

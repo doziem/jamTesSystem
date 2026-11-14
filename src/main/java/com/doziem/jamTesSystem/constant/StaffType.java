@@ -1,4 +1,7 @@
 package com.doziem.jamTesSystem.constant;
 
-public class StaffType {
+public enum StaffType {
+    CLINICAL,
+    NON_CLINICAL,
+    SUPPORT
 }

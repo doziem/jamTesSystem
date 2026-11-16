@@ -71,9 +71,7 @@ public class LabReportController {
             return ResponseEntity.ok(new ApiResponse(true, "Lab report updated", labReportService.updateLabReport(id, dto, authentication)));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(false, e.getMessage()));
-        } catch (UserNotAllowedException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, e.getMessage()));
-        } catch (IllegalArgumentException e) {
+        } catch (UserNotAllowedException | IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse(false, e.getMessage()));
